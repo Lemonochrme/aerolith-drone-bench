@@ -1,3 +1,8 @@
+# aerolith-drone-bench
+Test bench for Aerolith Drone
+
+<img width="800" height="450" alt="image" src="https://github.com/user-attachments/assets/534f0bd1-af26-4b2a-938c-14c92124e17a" />
+
 # Banc de calibration IMU / test multiaxe LithFrame F380
 
 Projet FreeCAD pour un banc manuel multiaxe, conçu autour d'un drone complet de 2 kg et de pièces imprimables sur un plateau de 220 × 220 mm.
