@@ -1,0 +1,22 @@
+{
+  "invalides": [],
+  "rehausse_mm": 130,
+  "hauteur_axes_mm": 895,
+  "guidage_ecartement_centres_mm": 64,
+  "impression_index": {
+    "dimensions_mm": [
+      110.0,
+      50.0,
+      48.0
+    ],
+    "solide": true,
+    "maillage_ferme": true
+  },
+  "sources": {
+    "UCF204": "https://eshop.ntn-snr.com/pt/product/UCF204-SNR/UCF204",
+    "51104": "https://www.nsk.com/jp-ja/engineering/51104-tb-sd.html",
+    "SHF20": "https://www.motedis.fr/fr/Supports-darbre-SHF20"
+  },
+  "objets_visibles": 290,
+  "solides_STEP": 291
+}

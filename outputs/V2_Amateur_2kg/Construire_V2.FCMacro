@@ -1,0 +1,247 @@
+import FreeCAD as App,FreeCADGui as Gui,Part,MeshPart,Import,math,json,os
+from pathlib import Path
+O=Path(globals().get('__file__',r'C:\Users\robin\Documents\Codex\2026-10-16\d-veloppe-un-banc-de-calibration-7\outputs\V2_Amateur_2kg\Construire_V2.FCMacro')).resolve().parent
+V=App.Vector
+D=App.newDocument('Banc_IMU_V2_Amateur');D.Label='Banc IMU V2 — amateur / drone 2 kg'
+S=D.addObject('Spreadsheet::Sheet','Parametres');S.Label='00 — Angles et données de référence'
+for cell,value in {'A1':'PARAMÈTRE','B1':'VALEUR','A2':'Masse drone (kg)','B2':'2','A3':'Plateau imprimante (mm)','B3':'220','A4':'Lacet (degrés)','B4':'0','A5':'Tangage (degrés)','B5':'0','A6':'Roulis (degrés)','B6':'0','A7':'Hauteur axes (référence)','B7':'765','A8':'Cadre extérieur (référence)','B8':'720','A9':'Cadre intérieur (référence)','B9':'620','A10':'Enveloppe drone Ø × h','B10':'500 × 160 mm','A12':'ANGLES MODIFIABLES : B4, B5, B6','A13':'Dimensions : modifier la macro puis reconstruire','A14':'Usage manuel statique, sans hélices','A15':'2 kg = donnée de conception, pas charge certifiée'}.items():S.set(cell,value)
+for cell,alias in [('B4','Yaw'),('B5','Pitch'),('B6','Roll')]:S.setAlias(cell,alias)
+S.setColumnWidth('A',330);S.setColumnWidth('B',200);S.setStyle('A1:B1','bold','add')
+base=D.addObject('App::Part','Socle');base.Label='01 — Socle 3030 / contreplaqué'
+yaw=D.addObject('App::Part','Lacet');yaw.Label='02 — Lacet / fourche 3060'
+yaw.Placement=App.Placement(V(),App.Rotation(V(0,0,1),0));yaw.setExpression('Placement.Rotation.Angle','Parametres.Yaw * 1 deg')
+pitch=D.addObject('App::Part','Tangage');yaw.addObject(pitch);pitch.Label='03 — Cadre tangage 720 × 720';pitch.Placement=App.Placement(V(0,0,765),App.Rotation(V(0,1,0),0));pitch.setExpression('Placement.Rotation.Angle','Parametres.Pitch * 1 deg')
+roll=D.addObject('App::Part','Roulis');pitch.addObject(roll);roll.Label='04 — Cadre roulis 620 × 620';roll.Placement=App.Placement(V(),App.Rotation(V(1,0,0),0));roll.setExpression('Placement.Rotation.Angle','Parametres.Roll * 1 deg')
+ref=D.addObject('App::Part','DroneReference');roll.addObject(ref);ref.Label='05 — Platine LithFrame exacte / référence'
+lib=D.addObject('App::Part','PiecesImprimees');lib.Label='06 — Pièces à imprimer / bibliothèque masquée'
+metal=(.72,.76,.8);wood=(.76,.58,.34);blue=(.12,.42,.64);orange=(.97,.48,.14);dark=(.18,.20,.22);green=(.15,.65,.45)
+parts=[];cuts=[];printed=[]
+def rotation(x,y,z):return App.Rotation(V(*x),V(*y),V(*z),'ZXY')
+def place(shape,pos=(0,0,0),rot=None):
+ sh=shape.copy();sh.Placement=App.Placement(V(*pos),rot or App.Rotation());return sh
+def add(name,shape,parent,color=metal,spec='',kind=''):
+ ob=D.addObject('PartDesign::Feature',name);ob.Label=name.replace('_',' ');ob.Shape=shape;parent.addObject(ob);ob.ViewObject.ShapeColor=color;ob.ViewObject.LineColor=(.16,.18,.2);ob.ViewObject.DisplayMode='Flat Lines'
+ ob.addProperty('App::PropertyString','Specification','Fabrication');ob.Specification=spec
+ ob.addProperty('App::PropertyString','Categorie','Fabrication');ob.Categorie=kind;parts.append(ob);return ob
+profiles={}
+for tag in ['3030','3060']:
+ sh=Part.read(str(O/'Sources'/(tag+'.step')))
+ face=max([f for f in sh.Faces if f.BoundBox.ZLength<.0001 and abs(f.CenterOfMass.z)<.001],key=lambda f:f.Area).copy()
+ b=sh.BoundBox;face.translate(V(-(b.XMin+b.XMax)/2,-(b.YMin+b.YMax)/2,0));profiles[tag]=face
+bracket=Part.read(str(O/'Sources'/'bracket.step'))
+def beam(name,tag,length,pos,axis,parent):
+ sh=profiles[tag].extrude(V(0,0,length));ob=add(name,place(sh,pos,App.Rotation(V(0,0,1),V(*axis))),parent,metal,f'Profilé {tag} Type B rainure 8 — coupe droite {length} mm','Profilé');cuts.append({'piece':name,'section':tag,'longueur_mm':length});return ob
+def bracket_at(name,pos,parent,rot=None):return add(name,place(bracket,pos,rot),parent,metal,'Équerre Motedis S8BBR30 avec kit M6x12 / écrous B8','Standard')
+def frame(name,size,z,parent):
+ half=size/2;inner=half-30;mid=half-15
+ for sign in [-1,1]:
+  beam(name+'_X', '3030',size,(-half,sign*mid,z),(1,0,0),parent)
+  if name=='Cadre_tangage':
+   for yy in [-inner,50]:beam(name+'_Y_segment','3030',280,(sign*mid,yy,z),(0,1,0),parent)
+  else:beam(name+'_Y','3030',size-60,(sign*mid,-inner,z),(0,1,0),parent)
+ for sx,sy,angle in [(-1,-1,-90),(1,-1,0),(1,1,90),(-1,1,180)]:bracket_at(name+'_Equerre',(sx*inner,sy*inner,z),parent,App.Rotation(V(0,0,1),angle))
+# Small standard fasteners, simplified unthreaded shanks and heads.
+def bolt(name,r,length,pos,axis,parent,color=dark):
+ sh=Part.makeCylinder(r,length).fuse(Part.makeCylinder(r*1.8,r,V(0,0,-r)))
+ return add(name,place(sh,pos,App.Rotation(V(0,0,1),V(*axis))),parent,color,f'Vis M{int(2*r)} × {length} — représentation simplifiée','Visserie')
+def ring(ro,ri,t,z=0):return Part.makeCylinder(ro,t,V(0,0,z)).cut(Part.makeCylinder(ri,t,V(0,0,z)))
+def hexprism(af,length,pos,axis=V(0,0,1)):
+ rr=af/math.sqrt(3);pts=[V(rr*math.cos(i*math.pi/3+math.pi/6),rr*math.sin(i*math.pi/3+math.pi/6),0) for i in range(6)];wire=Part.makePolygon(pts+[pts[0]]);sh=Part.Face(wire).extrude(V(0,0,length));sh.Placement=App.Placement(pos,App.Rotation(V(0,0,1),axis));return sh
+# Universal printed bearing block: two 6004 bearings, 40 mm body, captive metal nuts on caps.
+core=Part.makeBox(80,80,40,V(-40,-40,0)).cut(Part.makeCylinder(18,42,V(0,0,-1))).cut(Part.makeCylinder(21.1,39,V(0,0,2)))
+body=core.fuse(Part.makeBox(80,50,8,V(-40,-90,32)))
+bodyroll=core.fuse(Part.makeBox(80,60,8,V(-40,-100,0))).fuse(Part.makeBox(80,60,8,V(-40,40,0)))
+for x in [-29,29]:
+ for y in [-29,29]:
+  hole=Part.makeCylinder(2.25,42,V(x,y,-1));body=body.cut(hole);bodyroll=bodyroll.cut(hole)
+for x in [-15,15]:body=body.cut(Part.makeCylinder(3.3,10,V(x,-55,31)))
+for y in [-85,-65,65,85]:bodyroll=bodyroll.cut(Part.makeCylinder(3.3,10,V(0,y,-1)))
+body=body.removeSplitter();bodyroll=bodyroll.removeSplitter()
+spacer=Part.makeCylinder(20.95,13.8).cut(Part.makeCylinder(18,13.8))
+cap=Part.makeBox(80,80,4,V(-40,-40,0)).cut(Part.makeCylinder(18,6,V(0,0,-1)))
+for x in [-29,29]:
+ for y in [-29,29]:cap=cap.cut(Part.makeCylinder(2.25,6,V(x,y,-1)))
+brake=cap.fuse(Part.makeBox(8,80,8,V(-40,-40,4))).fuse(Part.makeBox(52,8,8,V(-32,-40,4))).fuse(Part.makeBox(52,8,8,V(-32,32,4))).removeSplitter()
+# Split shaft hub, flange on a standard slot face: two M6 attachment screws, two M5 clamp screws.
+hub=Part.makeBox(80,60,8,V(-40,-30,0)).fuse(Part.makeBox(42,50,20,V(-21,-25,8)))
+hub=hub.cut(Part.makeCylinder(10.1,30,V(0,0,-1))).cut(Part.makeBox(23,1.2,21,V(0,-.6,8)))
+for x in [-27,27]:hub=hub.cut(Part.makeCylinder(3.3,10,V(x,0,-1)))
+for z in [14,23]:hub=hub.cut(Part.makeCylinder(2.7,52,V(15,-26,z),V(0,1,0))).cut(hexprism(8.3,4.5,V(15,20.5,z),V(0,1,0)))
+hub=hub.removeSplitter()
+# Drop bracket, final print orientation lies on one side, not upright.
+drop=Part.makeBox(8,70,108,V(-8,-35,-85)).fuse(Part.makeBox(38,70,8,V(-8,-35,15))).fuse(Part.makeBox(38,70,8,V(-38,-35,-93)))
+for y in [-20,20]:drop=drop.cut(Part.makeCylinder(3.3,10,V(15,y,14)))
+drop=drop.cut(Part.makeCylinder(3.3,10,V(-20,0,-94))).removeSplitter()
+# Handwheel with 15 degree witness ticks; no promise of metrological indexing.
+wheel=Part.makeCylinder(55,8).fuse(Part.makeBox(42,50,20,V(-21,-25,8))).cut(Part.makeCylinder(10.1,30,V(0,0,-1)))
+wheel=wheel.cut(Part.makeBox(22,1.2,20,V(0,-.6,8)))
+for z in [14,23]:wheel=wheel.cut(Part.makeCylinder(2.7,52,V(15,-26,z),V(0,1,0))).cut(hexprism(8.3,4.5,V(15,20.5,z),V(0,1,0)))
+for i in range(24):
+ a=math.radians(i*15);wheel=wheel.cut(Part.makeCylinder(2.7,10,V(45*math.cos(a),45*math.sin(a),-1)));tick=Part.makeBox(5,1.5,.8,V(49,-.75,8));tick.rotate(V(),V(0,0,1),i*15);wheel=wheel.fuse(tick)
+wheel=wheel.removeSplitter()
+# Fit coupon: trial holes for shaft and bearing, labels documented left-to-right in guide.
+coupon=Part.makeBox(200,100,6)
+for i,d in enumerate([41.9,42.0,42.1,42.2]):coupon=coupon.cut(Part.makeCylinder(d/2,8,V(25+50*i,30,-1)))
+for i,d in enumerate([20.0,20.1,20.2,20.3]):coupon=coupon.cut(Part.makeCylinder(d/2,8,V(25+50*i,78,-1)))
+# Positive indexing arm: two holes share the bearing-cap bolts (use M4x65 there).
+arm=Part.makeBox(54,80,6,V(24,-40,4)).fuse(Part.makeBox(12,30,37,V(66,-15,10))).fuse(Part.makeBox(40,30,8,V(38,-15,47)))
+for y in [-29,29]:arm=arm.cut(Part.makeCylinder(2.25,8,V(29,y,3)))
+arm=arm.cut(Part.makeCylinder(2.75,10,V(45,0,46))).removeSplitter()
+guide=Part.makeBox(80,200,4,V(-40,-100,0))
+for y in [-85,-65,65,85]:guide=guide.cut(Part.makeCylinder(3.3,6,V(0,y,-1)))
+guide=guide.cut(Part.makeCylinder(1.6,6,V(0,0,-1)))
+printspec=[('01_Corps_palier_tangage_x2',body,2,App.Rotation(V(1,0,0),180)),('01B_Corps_palier_pont_x2',bodyroll,2,None),('09_Entretoise_bagues_exterieures_x4',spacer,4,None),('02_Couvercle_simple_x2',cap,2,None),('03_Couvercle_indexage_x2',brake,2,None),('04_Moyeu_fendu_x4',hub,4,None),('05_Console_porte_drone_x4',drop,4,App.Rotation(V(1,0,0),90)),('06_Volant_repere_x2',wheel,2,None),('00_Coupon_ajustement_x1',coupon,1,None),('07_Bras_indexage_x2',arm,2,None),('08_Gabarit_plaques_pont_x1',guide,1,None)]
+for name,shape,qty,orient in printspec:
+ ob=add(name,shape,lib,orange,'PETG — voir guide pour orientation, reprise des trous et serrage','Impression');ob.Visibility=False
+ printshape=shape.copy()
+ if orient:printshape.Placement=App.Placement(V(),orient)
+ b=printshape.BoundBox;printshape.translate(V(-b.XMin,-b.YMin,-b.ZMin))
+ mesh=MeshPart.meshFromShape(Shape=printshape,LinearDeflection=.12,AngularDeflection=.15,Relative=False);mesh.write(str(O/'STL'/(name+'.stl')))
+ printed.append({'piece':name,'quantite':qty,'dimensions_impression_mm':[printshape.BoundBox.XLength,printshape.BoundBox.YLength,printshape.BoundBox.ZLength],'solide_valide':shape.isValid(),'nombre_solides':len(shape.Solids),'maillage_ferme':mesh.isSolid(),'volume_mm3':shape.Volume})
+lib.Visibility=False
+# Base, plywood turntable, yaw yoke.
+frame('Socle',1000,30,base)
+for x in [-100,100]:
+ beam('Renfort_sous_plateau','3030',940,(x,-470,30),(0,1,0),base)
+ for sy in [-1,1]:
+  for side in [-1,1]:
+   # bracket fits the two sides of each T joint
+   angle={(-1,-1):-90,(1,-1):0,(1,1):90,(-1,1):180}[(side,sy)]
+   bracket_at('Equerre_renfort',(x+side*15,sy*470,30),base,App.Rotation(V(0,0,1),angle))
+for x in [-485,485]:
+ for y in [-485,485]:add('Patin_caoutchouc',Part.makeCylinder(18,15,V(x,y,0)),base,dark,'Patin standard collé/vissé','Standard')
+fixed=Part.makeBox(400,400,18,V(-200,-200,45));moving=Part.makeBox(400,400,18,V(-200,-200,75))
+for x in [-100,100]:
+ for y in [-150,150]:fixed=fixed.cut(Part.makeCylinder(3.3,20,V(x,y,44)))
+for x in [-15,15]:
+ for y in [-170,170]:moving=moving.cut(Part.makeCylinder(3.3,20,V(x,y,74)))
+add('CP_01_Embase_400x400x18',fixed,base,wood,'CP bouleau 18 ; perçages du roulement à reporter sur pièce achetée','Bois')
+add('Roulement_plateau_tournant_300',ring(150,125,12,63),base,dark,'Enveloppe 300 × 12 : roulement de plateau tournant captif à boulonner ; entraxes fabricant à reporter','Standard')
+add('CP_02_Plateau_tournant_400x400x18',moving,yaw,wood,'CP bouleau 18 ; 4 fixations M6 à la traverse et montage du roulement acheté','Bois')
+beam('Traverse_fourche_950','3060',950,(0,-475,108),(0,1,0),yaw)
+for sign in [-1,1]:
+ beam('Montant_600','3060',600,(0,sign*460,123),(0,0,1),yaw)
+ rr=rotation((0,sign,0),(0,0,1),(sign,0,0))
+ for x in [-15,15]:bracket_at('Equerre_pied_montant',(x,sign*445,123),yaw,rr)
+ # Plywood gussets at both side faces. Coordinates are global; mirror Y.
+ for side in [-1,1]:
+  pts=[V(side*30,sign*230,88),V(side*30,sign*480,88),V(side*30,sign*480,338)]
+  sh=Part.Face(Part.makePolygon(pts+[pts[0]])).extrude(V(side*18,0,0))
+  for yy,zz in [(300,108),(460,158),(460,258)]:sh=sh.cut(Part.makeCylinder(3.3,22,V(side*29,sign*yy,zz),V(side,0,0)))
+  add('CP_03_Gousset_250x250x18',sh,yaw,wood,'Triangle CP 18 : 3 trous Ø6,6 ; fixation M6x25 dans rainures latérales','Bois')
+# New nested profile frames.
+frame('Cadre_tangage',720,0,pitch);frame('Cadre_roulis',620,0,roll)
+for sign in [-1,1]:
+ plate=Part.makeBox(3,200,80,V(sign*360 if sign==1 else -363,-100,-40))
+ plate=plate.cut(Part.makeCylinder(19,5,V(sign*359 if sign==1 else -364,0,0),V(1,0,0)))
+ for yy in [-85,-65,65,85]:plate=plate.cut(Part.makeCylinder(3.3,5,V(sign*359 if sign==1 else -364,yy,0),V(1,0,0)))
+ add('AL_01_Plaque_pont_80x200x3',plate,pitch,metal,'Plat aluminium 80 × 200 × 3 ; trou central Ø38 ; 4 trous Ø6,6 sur axe à ±65 et ±85 ; liaison des 2 segments 3030','Plat aluminium')
+def bearing_module(name,parent,pos,rr,typ,indexed=False):
+ sh=body if typ=='pitch' else bodyroll
+ add(name+'_Corps',place(sh,pos,rr),parent,blue,'Corps avec épaulement intégré ; chargement des roulements par la face ouverte ; entretoise 09 entre bagues extérieures','Impression')
+ add(name+'_Capot',place(place(brake if indexed else cap,(0,0,40)),pos,rr),parent,blue,'03 couvercle indexage' if indexed else '02 couvercle simple','Impression')
+ for z in [2.1,27.9]:add(name+'_6004',place(ring(21,10,12,z),pos,rr),parent,dark,'6004-2RS, 20 × 42 × 12 mm','Standard')
+ add(name+'_Entretoise_09',place(place(spacer,(0,0,14.1)),pos,rr),parent,orange,'09 entretoise imprimée, entre les bagues extérieures seulement','Impression')
+ for x in [-29,29]:
+  for y in [-29,29]:
+   pp=V(*pos)+rr.multVec(V(x,y,0));aa=rr.multVec(V(0,0,1));bolt(name+'_M4x55',2,55,tuple(pp),tuple(aa),parent)
+ holes=[(-15,-55),(15,-55)] if typ=='pitch' else [(0,-85),(0,-65),(0,65),(0,85)]
+ for x,y in holes:
+  zz=32 if typ=='pitch' else 8;az=1 if typ=='pitch' else -1;length=16 if typ=='pitch' else 20
+  pp=V(*pos)+rr.multVec(V(x,y,zz));aa=rr.multVec(V(0,0,az));bolt(name+'_M6',3,length,tuple(pp),tuple(aa),parent)
+for sign in [-1,1]:
+ rr=rotation((-sign,0,0),(0,0,1),(0,sign,0))
+ bearing_module('Palier_tangage_'+str(sign),yaw,(0,sign*405,765),rr,'pitch',sign==1)
+ hr=rotation((1,0,0),(0,0,-sign),(0,sign,0))
+ add('Moyeu_tangage',place(hub,(0,sign*360,0),hr),pitch,orange,'04 moyeu ; deux M6x16 vers profilé, deux M5x60 / écrous hexagonaux','Impression')
+ add('Axe_tangage_20x150',Part.makeCylinder(10,150,V(0,sign*368,0),V(0,sign,0)),pitch,metal,'Arbre lisse Ø20 h6, coupe droite 150 mm','Standard')
+ for dist in [390.1,445.9]:add('Bague_arret_tangage',place(ring(16,10,14),(0,sign*dist,0),hr),pitch,dark,'Bague d’arrêt DIN 705 Ø20, Øextérieur 32 maxi, largeur 14 ; réglage sans précharge','Standard')
+ for dist,thick in [(404.1,3),(444.9,1)]:add('Rondelles_tangage_20x28',place(ring(14,10,thick),(0,sign*dist,0),hr),pitch,metal,'Empilage de rondelles DIN 988 20 × 28 × 1 ; appui uniquement sur bague intérieure','Standard')
+ if sign==1:add('Volant_tangage',place(wheel,(0,481,0),hr),pitch,orange,'06 volant / indexage 15° / 2 M5x60','Impression')
+ for x in [-27,27]:bolt('Fixation_moyeu_M6x16',3,16,(x,sign*368,0),(0,-sign,0),pitch)
+for sign in [-1,1]:
+ rr=rotation((0,0,1),(0,-sign,0),(sign,0,0))
+ bearing_module('Palier_roulis_'+str(sign),pitch,(sign*363,0,0),rr,'roll',sign==1)
+ hr=rotation((0,1,0),(0,0,sign),(sign,0,0))
+ add('Moyeu_roulis',place(hub,(sign*310,0,0),hr),roll,orange,'04 moyeu, 2 M6x16 et 2 M5x60','Impression')
+ add('Axe_roulis_20x150',Part.makeCylinder(10,150,V(sign*318,0,0),V(sign,0,0)),roll,metal,'Arbre lisse Ø20 h6, coupe 150 mm','Standard')
+ for dist in [348.1,403.9]:add('Bague_arret_roulis',place(ring(16,10,14),(sign*dist,0,0),hr),roll,dark,'Bague d’arrêt DIN 705 Ø20, Øextérieur 32 maxi, largeur 14','Standard')
+ for dist,thick in [(362.1,3),(402.9,1)]:add('Rondelles_roulis_20x28',place(ring(14,10,thick),(sign*dist,0,0),hr),roll,metal,'DIN 988 20 × 28 × 1, empilage côté épaulement 3 mm, côté couvercle 1 mm','Standard')
+ if sign==1:add('Volant_roulis',place(wheel,(430,0,0),hr),roll,orange,'06 volant / 24 positions à 15° / 2 M5x60','Impression')
+ for y in [-27,27]:bolt('Fixation_moyeu_roulis_M6',3,16,(sign*318,y,0),(-sign,0,0),roll)
+for ob in list(parts):
+ pp=ob.Shape.Placement.Base
+ if ob.Name.startswith('Palier_tangage_1_M4x55') and abs(pp.x+29)<.1:
+  parts.remove(ob);D.removeObject(ob.Name);bolt('Index_tangage_M4x65',2,65,(-29,455,pp.z),(0,-1,0),yaw)
+ elif ob.Name.startswith('Palier_roulis_1_M4x55') and abs(pp.z-29)<.1:
+  parts.remove(ob);D.removeObject(ob.Name);bolt('Index_roulis_M4x65',2,65,(413,pp.y,29),(-1,0,0),pitch)
+# Four printed drop saddles and two aluminium crossrails.
+for sign in [-1,1]:
+ rot=App.Rotation(V(0,0,1),0 if sign==1 else 180)
+ for y in [-90,90]:
+  add('Console_porte_drone',place(drop,(sign*280,y,0),rot),roll,orange,'05 console imprimée ; 2 M6x16 en haut + 1 M6x16 sous rail','Impression')
+  for yy in [-20,20]:bolt('Console_M6x16',3,16,(sign*295,y+yy,23),(0,0,-1),roll)
+for y in [-90,90]:beam('Rail_porte_drone_544','3030',544,(-272,y,-70),(1,0,0),roll)
+pl=Part.makeBox(180,300,12,V(-90,-150,-55))
+for x in [-60,60]:
+ for y in [-90,90]:pl=pl.cut(Part.makeCylinder(3.3,14,V(x,y,-56)))
+for a in [25,35]:
+ for x in [-a,a]:
+  for y in [-a,a]:pl=pl.cut(Part.makeCylinder(2.25,14,V(x,y,-56)))
+add('CP_04_Platine_180x300x12',pl,roll,wood,'CP bouleau 12 ; 4 trous M6 rail + carrés Ø4,5 entraxes 50 et 70','Bois')
+for x in [-60,60]:
+ for y in [-90,90]:bolt('Platine_M6x20',3,20,(x,y,-43),(0,0,-1),roll)
+for x in [-25,25]:
+ for y in [-25,25]:
+  add('Entretoise_metal_M4_20',Part.makeCylinder(4,20,V(x,y,-43)).cut(Part.makeCylinder(2.25,20,V(x,y,-43))),roll,metal,'Entretoise métallique Ø8 / trou Ø4,5, longueur 20 mm','Standard')
+  bolt('Drone_M4x45',2,45,(x,y,-20),(0,0,-1),roll)
+# Exact supplied central plate, 3 mm assumed.
+src=json.loads((O/'Sources'/'contours_source.json').read_text(encoding='utf-8'));es=next(v for k,v in src.items() if k.startswith('Base'))
+edges=[]
+for e in es:
+ if e[0]=='LINE':edges.append(Part.makeLine(V(*e[1]),V(*e[2])))
+ elif e[0]=='CIRCLE':edges.append(Part.makeCircle(e[2],V(*e[1])))
+ elif e[0]=='ARC':edges.append(Part.makeCircle(e[2],V(*e[1]),V(0,0,1),e[3],e[4] if e[4]>e[3] else e[4]+360))
+for e in edges:e.fixTolerance(.001)
+face=Part.makeFace([Part.Wire(w) for w in Part.sortEdges(edges,.01)],'Part::FaceMakerBullseye')
+add('LithFrame_base_DXF',place(face.extrude(V(0,0,3)),(0,0,-23)),ref,dark,'Contours source réels ; épaisseur 3 mm supposée ; masse 2 kg donnée pour drone complet','Référence')
+# Two printed lock arms on the exterior brake caps; pin shown removed for free movement.
+for name,parent,pos,rr in [
+ ('Index_tangage',yaw,(0,445,765),rotation((-1,0,0),(0,0,1),(0,1,0))),
+ ('Index_roulis',pitch,(403,0,0),rotation((0,0,1),(0,-1,0),(1,0,0)))]:
+ add(name+'_Bras',place(arm,pos,rr),parent,blue,'07 bras indexage ; 2 M4x65 partagés avec le couvercle ; vis M5x35 + écrou papillon à insérer après alignement','Impression')
+ pp=V(*pos)+rr.multVec(V(45,0,90));aa=rr.multVec(V(0,0,-1))
+ add(name+'_Goupille_retiree',place(Part.makeCylinder(2.5,35).fuse(Part.makeCylinder(5,4,V(0,0,-4))),tuple(pp),App.Rotation(V(0,0,1),aa)),parent,dark,'Vis M5x35 utilisée comme goupille, représentée retirée. Retenir par écrou papillon lorsqu’elle est engagée.','Standard')
+# Two additional clamp bolts per hub and per wheel. Nuts are ordinary M5 in printed hexagonal pockets.
+for ob in list(parts):
+ if ob.Name.startswith(('Moyeu_tangage','Moyeu_roulis','Volant_tangage','Volant_roulis')):
+  pp=ob.Shape.Placement
+  parent=next(q for q in [pitch,roll] if ob in q.Group)
+  for z in [14,23]:
+   a=pp.multVec(V(15,-25,z));b=pp.Rotation.multVec(V(0,1,0));bolt('Serrage_moyeu_M5x60',2.5,60,tuple(a),tuple(b),parent)
+# Show M6 fasteners through plywood gussets, at slots on the side faces.
+for sign in [-1,1]:
+ for side in [-1,1]:
+  for yy,zz in [(300,108),(460,158),(460,258)]:bolt('Gousset_M6x25',3,25,(side*48,sign*yy,zz),(-side,0,0),yaw)
+for x in [-100,100]:
+ for y in [-150,150]:bolt('Embase_M6x25',3,25,(x,y,63),(0,0,-1),base)
+for x in [-15,15]:
+ for y in [-170,170]:bolt('Traverse_sur_CP_M6x25',3,25,(x,y,75),(0,0,1),yaw)
+# Four rail-fixing bolts below the drop brackets.
+for sx in [-1,1]:
+ for y in [-90,90]:bolt('Console_sous_rail_M6x16',3,16,(sx*260,y,-93),(0,0,1),roll)
+# Envelope hidden; excluded explicitly from STEP.
+env=add('Enveloppe_drone_500x160',Part.makeCylinder(250,160,V(0,0,-80)),ref,green,'Volume de contrôle, masqué','Contrôle');env.Visibility=False
+D.recompute()
+visible=[o for o in parts if o not in lib.Group and o is not env]
+invalid=[o.Name for o in visible if not o.Shape.isValid() or len(o.Shape.Solids)!=1]
+report={'pieces_visibles':len(visible),'invalides':invalid,'impressions':printed,'coupes':cuts,'masse_drone_kg':2,'charge_admissible_certifiee':False,'avertissement':'Les fixations standard sont schématiques ; confirmer épaisseur et perçages du roulement de lacet acheté.'}
+(O/'verification_V2.json').write_text(json.dumps(report,indent=2,ensure_ascii=False),encoding='utf-8')
+Gui.activeDocument().activeView().viewAxonometric();Gui.activeDocument().activeView().fitAll();Gui.activeDocument().activeView().getCameraNode().height.setValue(1600)
+D.recompute();D.saveAs(str(O/'Banc_IMU_V2_Amateur_2kg.FCStd'))
+ex=App.newDocument('Export_V2');items=[]
+for o in visible:
+ q=ex.addObject('PartDesign::Feature',o.Name);q.Label=o.Label;q.Shape=o.Shape.copy();q.Placement=o.getGlobalPlacement();q.ViewObject.ShapeColor=o.ViewObject.ShapeColor;items.append(q)
+ex.recompute();Import.export(items,str(O/'Banc_IMU_V2_Amateur_2kg.step'));App.closeDocument(ex.Name);App.setActiveDocument(D.Name)
+Gui.activeDocument().activeView().saveImage(str(O/'Banc_V2_vue_ensemble.png'),1800,1400,'White')
+print('V2 créée',report['pieces_visibles'],'pièces, invalides',invalid)

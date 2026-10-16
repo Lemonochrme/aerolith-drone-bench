@@ -1,0 +1,74 @@
+[
+  {
+    "position": "neutre",
+    "angles": [
+      0,
+      0,
+      0
+    ],
+    "interferences": []
+  },
+  {
+    "position": "dessous",
+    "angles": [
+      0,
+      180,
+      0
+    ],
+    "interferences": []
+  },
+  {
+    "position": "avant",
+    "angles": [
+      0,
+      90,
+      0
+    ],
+    "interferences": []
+  },
+  {
+    "position": "arriere",
+    "angles": [
+      0,
+      -90,
+      0
+    ],
+    "interferences": []
+  },
+  {
+    "position": "gauche",
+    "angles": [
+      0,
+      0,
+      90
+    ],
+    "interferences": []
+  },
+  {
+    "position": "droite",
+    "angles": [
+      0,
+      0,
+      -90
+    ],
+    "interferences": []
+  },
+  {
+    "position": "combine",
+    "angles": [
+      30,
+      45,
+      45
+    ],
+    "interferences": []
+  },
+  {
+    "position": "roulis_intermediaire",
+    "angles": [
+      0,
+      0,
+      45
+    ],
+    "interferences": []
+  }
+]

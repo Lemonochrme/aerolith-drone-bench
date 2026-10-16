@@ -1,0 +1,148 @@
+{
+  "rotation_echantillonnee_deg": [
+    0,
+    15,
+    30,
+    45,
+    60,
+    75,
+    90,
+    105,
+    120,
+    135,
+    150,
+    165,
+    180,
+    195,
+    210,
+    225,
+    240,
+    255,
+    270,
+    285,
+    300,
+    315,
+    330,
+    345,
+    7.5,
+    82.5,
+    187.5,
+    277.5
+  ],
+  "positions": [
+    {
+      "lacet_deg": 0,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 15,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 30,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 45,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 60,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 75,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 90,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 105,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 120,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 135,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 150,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 165,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 180,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 195,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 210,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 225,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 240,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 255,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 270,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 285,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 300,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 315,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 330,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 345,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 7.5,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 82.5,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 187.5,
+      "interferences": []
+    },
+    {
+      "lacet_deg": 277.5,
+      "interferences": []
+    }
+  ],
+  "contre_ecrous_vers_pont_butee": [],
+  "charge_et_rigidite_non_validees": true
+}
