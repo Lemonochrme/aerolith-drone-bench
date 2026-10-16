@@ -1,6 +1,6 @@
 # Aerolith Drone Bench
 
-Banc manuel de calibration IMU à trois axes pour un drone LithFrame F380 de 2 kg.
+Banc manuel de calibration IMU à trois axes pour un drone quadcopter.
 
 [Banc : CAO, plans, STL et composants](outputs/banc/README.md)
 
