@@ -8,4 +8,3 @@ Banc manuel de calibration IMU à trois axes pour un drone LithFrame F380 de 2 k
 
 ![Animation du banc](outputs/media/animation.gif)
 
-[Vidéo 4K](outputs/media/animation-4k.mp4), 12 secondes, 24 images/s.
