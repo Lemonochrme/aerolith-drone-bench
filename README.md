@@ -10,16 +10,6 @@ Lacet, tangage, roulis, puis mouvement combiné — 12 secondes, sans texte ni s
 
 [Voir ou télécharger la vidéo 4K — 3840 × 2160, 24 images/s](outputs/V5_Helices_4K/Banc_IMU_Helices_4K.mp4)
 
-## Vues du projet
-
-| Banc complet avec drone et hélices — V5 | Cadre en position inclinée — V5 |
-|---|---|
-| ![Vue complète du banc V5](outputs/README_animation/banc-ensemble.png) | ![Vue inclinée du banc V5](outputs/README_animation/banc-incline.png) |
-
-| Assemblage des pièces carbone du drone — V4, sans hélices | Détail du pivot de lacet — V3, conservé dans V5 |
-|---|---|
-| ![Châssis LithFrame avec ses huit bras sur chant](outputs/V4_Drone_assemble/Drone_V4_detail.png) | ![Cartouche du pivot de lacet et indexage](outputs/V3_Pivot_lacet/Pivot_V3_detail.png) |
-
 ## Liste des composants du banc
 
 Quantités montées. Les kits d'équerres et leur visserie sont distingués de la visserie supplémentaire dans la nomenclature complète.
