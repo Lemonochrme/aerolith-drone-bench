@@ -1,8 +1,0 @@
-{
-  "cas_vertical_N": 400,
-  "moment_basculement_Nm": 20,
-  "ecartement_paliers_mm": 64,
-  "reaction_paire_radiale_N": 312.5,
-  "contrainte_flexion_arbre_ideal_MPa": 25.464790894703256,
-  "ne_valide_pas_la_resistance_du_banc": true
-}

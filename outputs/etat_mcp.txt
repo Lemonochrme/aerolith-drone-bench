@@ -1,2 +1,0 @@
-RPC Server already running at 127.0.0.1:9875 (PID 17500).
-Addon: C:\Users\robin\AppData\Roaming\FreeCAD\v1-1\Mod\FreeCADMCP

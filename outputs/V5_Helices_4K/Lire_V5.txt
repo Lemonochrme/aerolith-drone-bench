@@ -1,3 +1,0 @@
-Hélices ajoutées : quatre bipales indicatives de diamètre 228,6 mm (9 pouces), avec sens alternés et pales vrillées. Leur référence, leur pas et leur montage réel restent à confirmer. Les équipements du drone restent des représentations d'encombrement. Les hélices sont immobiles pendant la cinématique du banc.
-
-Vidéo : 3840 × 2160 pixels, 24 images/seconde, durée 12 secondes, sans texte ni son. Séquences de lacet, tangage, roulis puis mouvement combiné. Il s'agit d'une visualisation cinématique, sans simulation dynamique ni validation de résistance.

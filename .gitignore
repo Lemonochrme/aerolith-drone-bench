@@ -1,17 +1,14 @@
-# Intermédiaires, images de rendu et environnement MCP
-work/*
-!work/assemble_v4.py
-!work/add_props.py
-!work/animate_v5_wide.py
-!work/export_v5.py
-!work/bom_v5.py
-
-# Sauvegardes automatiques et fichiers temporaires
+work/
+outputs/*
+!outputs/banc/
+!outputs/chassis/
+!outputs/media/
+.build/
 *.FCStd1
 *.FCStd2
 *.FCBak
 *.FCStd.*
-*.pyc
 __pycache__/
+*.pyc
 Thumbs.db
 .DS_Store

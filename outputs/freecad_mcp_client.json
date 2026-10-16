@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "freecad": {
-      "command": "C:\\Users\\robin\\AppData\\Local\\FreeCADMCP\\venv\\Scripts\\freecad-mcp.exe",
-      "args": []
-    }
-  }
-}
