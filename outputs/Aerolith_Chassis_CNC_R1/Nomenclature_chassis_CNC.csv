@@ -1,0 +1,9 @@
+﻿Pièce;Quantité;Matière;Épaisseur_mm;Notes
+01_Platine_centrale;2;Carbone;4;Contour DXF nominal
+02_Bras_court;4;Carbone;4;Contour DXF nominal
+03_Bras_long;4;Carbone;4;Contour DXF nominal
+04_Socle_moteur;8;Carbone;4;Contour DXF nominal
+05_Coupon_ajustement;1;Carbone;4;Coupon à tester avant les pièces finales
+Entretoise M3 L20;4;Métal;;Centrale, dimensions à confirmer
+Entretoise M3 L10;12;Métal;;Trois par support moteur double
+Visserie M3 de fermeture;;Acier;;"Longueurs selon entretoises et écrous achetés ; non détaillée dans la CAO"

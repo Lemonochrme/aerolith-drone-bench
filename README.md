@@ -2,6 +2,12 @@
 
 Banc manuel de calibration IMU à trois axes pour drone LithFrame F380. Projet FreeCAD conçu autour d'un drone complet de **2 kg**, avec profilés aluminium, visserie standard et pièces PETG imprimables sur **220 × 220 mm**.
 
+## Châssis pour découpe CNC — étude R1
+
+[Nouveau projet de châssis CNC R1](outputs/Aerolith_Chassis_CNC_R1/README.md) : carbone de 4 mm, fraise Ø3 mm, contours arrondis et emboîtements adaptés. Cette étude autonome est livrée avec sa CAO, ses DXF et un coupon d'ajustement.
+
+[FreeCAD R1](outputs/Aerolith_Chassis_CNC_R1/Aerolith_Chassis_CNC_R1.FCStd) · [Dossier complet R1](outputs/Aerolith_Chassis_CNC_R1_Dossier.zip)
+
 ## Animation
 
 ![Animation du banc : lacet, tangage, roulis et mouvement combiné](outputs/README_animation/banc-imu.gif)

@@ -1,0 +1,189 @@
+import FreeCAD as App, Part, math, json
+from pathlib import Path
+V=App.Vector
+T=4.0; TOOL=3.0; CLEAR=.2
+OUT=Path(globals().get('__file__',r'C:\Users\robin\Documents\Codex\2026-10-16\d-veloppe-un-banc-de-calibration-7\outputs\Aerolith_Chassis_CNC_R1\Construire_chassis_CNC.FCMacro')).resolve().parent
+src=json.loads((OUT/'Sources/contours_source.json').read_text(encoding='utf-8'))
+def rot(p,a):
+ a=math.radians(a);return V(p.x*math.cos(a)-p.y*math.sin(a),p.x*math.sin(a)+p.y*math.cos(a),p.z)
+def rounded(points,r=4,variable=False):
+ ps=[V(x,y,0) for x,y in points];corners=[]
+ # Counterclockwise winding is not necessary: signed turn defines arc normal.
+ for i,p in enumerate(ps):
+  prev,nxt=ps[i-1],ps[(i+1)%len(ps)];u=p-prev;u.normalize();v=nxt-p;v.normalize()
+  angle=math.atan2(u.cross(v).z,u.dot(v))
+  if abs(angle)<1e-7:corners.append((p,p,None));continue
+  radius=(TOOL/2+.1 if angle<0 else 1.0) if variable else r
+  trim=radius*math.tan(abs(angle)/2)
+  cap=min((p-prev).Length,(nxt-p).Length)*.45
+  if trim>cap:
+   radius=cap/math.tan(abs(angle)/2);trim=cap
+  a=p-u*trim;b=p+v*trim;sgn=1 if angle>0 else -1
+  c=a+V(-u.y,u.x,0)*radius*sgn
+  middle=c+rot(a-c,math.degrees(angle)/2)
+  corners.append((a,b,(middle,radius,angle)))
+ es=[]
+ for i,(a,b,data) in enumerate(corners):
+  last=corners[i-1][1]
+  if (a-last).Length>1e-7:es.append(Part.makeLine(last,a))
+  if data:es.append(Part.Arc(a,data[0],b).toShape())
+ return Part.Wire(es)
+def capsule(cx,cy,length,width,angle=0):
+ radius=width/2;h=length/2-radius
+ ps=[V(-h,-radius),V(h,-radius),V(h,radius),V(-h,radius)]
+ es=[Part.makeLine(ps[0],ps[1]),Part.Arc(ps[1],V(h+radius,0),ps[2]).toShape(),Part.makeLine(ps[2],ps[3]),Part.Arc(ps[3],V(-h-radius,0),ps[0]).toShape()]
+ w=Part.Wire(es);w.rotate(V(),V(0,0,1),angle);w.translate(V(cx,cy));return w
+def circle(x,y,r):return Part.Wire([Part.makeCircle(r,V(x,y))])
+def face(outer,holes):return Part.makeFace([outer]+holes,'Part::FaceMakerBullseye')
+def sourceface(prefix):
+ es=next(v for k,v in src.items() if k.startswith(prefix));edges=[]
+ for e in es:
+  if e[0]=='LINE':edges.append(Part.makeLine(V(*e[1]),V(*e[2])))
+  elif e[0]=='CIRCLE':edges.append(Part.makeCircle(e[2],V(*e[1])))
+  else:edges.append(Part.makeCircle(e[2],V(*e[1]),V(0,0,1),e[3],e[4] if e[4]>e[3] else e[4]+360))
+ for e in edges:e.fixTolerance(.001)
+ return Part.makeFace([Part.Wire(w) for w in Part.sortEdges(edges,.01)],'Part::FaceMakerBullseye')
+# Main plate: remove logos, microcuts and the unused M2 electronics pattern.
+basepoints=[(-25,-135),(25,-135),(27,-124),(27,-98),(44,-60),(52,-25),(64,-8),(64,8),(52,25),(44,60),(27,98),(27,124),(25,135),(-25,135),(-27,124),(-27,98),(-44,60),(-52,25),(-64,8),(-64,-8),(-52,-25),(-44,-60),(-27,-98),(-27,-124)]
+baseholes=[]
+for e in next(v for k,v in src.items() if k.startswith('Base')):
+ if e[0]=='CIRCLE' and e[2]>=1.5:baseholes.append(circle(e[1][0],e[1][1],1.65 if e[2]<1.7 else e[2]))
+roots=[(14.180925185,102.561125984,22.198102),(41.414460411,11.777008489,47.198102)]
+for x,y,a in roots:
+ for sx in [-1,1]:
+  for sy in [-1,1]:baseholes.append(capsule(sx*x,sy*y,10.2+2*(TOOL/2+.1)+T+CLEAR,T+CLEAR,math.degrees(math.atan2(sy*math.sin(math.radians(a)),sx*math.cos(math.radians(a))))))
+for x in [-25,25]:
+ for y in [-45,45]:baseholes.append(capsule(x,y,27,5,90))
+for x in [-10,10]:
+ for y in [-79,79]:baseholes.append(capsule(x,y,22,7,90))
+base=face(rounded(basepoints,7),baseholes)
+# Keep tenon lands and assembly centerlines; soften nonfunctional corners.
+def arm(long=False):
+ shift=15 if long else 0;root=-67.5-shift;ends=[48.5+shift,68.5+shift];xmin=-80-shift;xmax=80+shift
+ low=[(xmin,-10),(root-5,-10),(root-5,-10-T),(root+5,-10-T),(root+5,-10),(-48-shift,-10),(-43-shift,-13.5),(14+shift,-9),(23+shift,-5),(ends[0]-4,-5),(ends[0]-4,-5-T),(ends[0]+4,-5-T),(ends[0]+4,-5),(ends[1]-4,-5),(ends[1]-4,-5-T),(ends[1]+4,-5-T),(ends[1]+4,-5),(xmax,-5)]
+ ps=low+[(x,-y) for x,y in reversed(low)]
+ holes=[]
+ # Rounded lightening windows with a thicker uninterrupted upper/lower chord.
+ start=-39-shift;stop=8+shift;count=4 if not long else 5
+ for i in range(count):
+  x=start+(stop-start)*i/(count-1);cy=1.2 if i%2==0 else -1.2
+  holes.append(capsule(x,cy,13 if not long else 14,7,22 if i%2==0 else -22))
+ if long:holes.append(circle(-71,0,3.25))
+ return face(rounded(ps,variable=True),holes)
+short=arm();long=arm(True)
+# Motor support: smooth outline, retain mounting centers and shaft clearance.
+mpoints=[(-23,-29),(28,-29),(28,-15),(23,12),(16,29),(3,36),(-10,29),(-18,12)]
+mholes=[]
+for e in next(v for k,v in src.items() if k.startswith('Socle')):
+ if e[0]=='CIRCLE':mholes.append(circle(e[1][0],e[1][1],1.65 if e[2]<1.7 else e[2]))
+for x,y,a in [(-14.184693509,-8.329579633,77.198102),(-9.75307754,11.173260666,77.198102),(19.249767711,-8.505751186,102.198102),(15.023919308,11.042706692,102.198102)]:mholes.append(capsule(x,y,8.2+2*(TOOL/2+.1)+T+CLEAR,T+CLEAR,a))
+motor=face(rounded(mpoints,5),mholes)
+# Fit coupon: alternative widths for actual sheet and spindle runout.
+couponholes=[capsule(-25+i*12,0,15,4.0+i*.1,90) for i in range(6)]
+coupon=face(rounded([(-37,-16),(47,-16),(47,16),(-37,16)],4),couponholes)
+forms={'01_Platine_centrale':base,'02_Bras_court':short,'03_Bras_long':long,'04_Socle_moteur':motor,'05_Coupon_ajustement':coupon}
+
+# Native FreeCAD project, separated from the calibration bench.
+import Import
+(OUT/'DXF').mkdir(exist_ok=True);(OUT/'STEP').mkdir(exist_ok=True)
+D=App.newDocument('Aerolith_Chassis_CNC_R1');D.Label='Aerolith — Châssis CNC R1 — carbone 4 mm / fraise 3 mm'
+settings=D.addObject('Spreadsheet::Sheet','Parametres');settings.Label='00 — Références de fabrication ; reconstruction par macro'
+for c,val in {'A1':'PARAMÈTRE / référence','B1':'VALEUR','A2':'Épaisseur carbone (mm)','B2':str(T),'A3':'Fraise (mm)','B3':str(TOOL),'A4':'Jeu nominal rainure (mm)','B4':str(CLEAR),'A5':'Rainure (mm)','B5':str(T+CLEAR),'A6':'Entretoises centrales (mm)','B6':'20','A7':'Entretoises moteur (mm)','B7':'10','A8':'Note','B8':'Modifier la macro et reconstruire pour changer les interfaces'}.items():settings.set(c,val)
+settings.setColumnWidth('A',320);settings.setColumnWidth('B',420);settings.setStyle('A1:B1','bold','add')
+lib=D.addObject('App::Part','Bibliotheque');lib.Label='01 — Pièces planes / historique d’extrusion'
+assembly=D.addObject('App::Part','Chassis');assembly.Label='02 — Châssis assemblé'
+fast=D.addObject('App::Part','Entretoises');assembly.addObject(fast);fast.Label='Entretoises métalliques indicatives'
+masters={};links=[];shapes=[]
+qty={'01_Platine_centrale':2,'02_Bras_court':4,'03_Bras_long':4,'04_Socle_moteur':8,'05_Coupon_ajustement':1}
+colors={'01_Platine_centrale':(.13,.18,.23),'02_Bras_court':(.19,.25,.30),'03_Bras_long':(.19,.25,.30),'04_Socle_moteur':(.17,.22,.27),'05_Coupon_ajustement':(.3,.5,.65)}
+report={'version':'R1','epaisseur_mm':T,'fraise_mm':TOOL,'jeu_rainure_mm':CLEAR,'gcode_genere':False,'formes':{},'collisions_carbone_mm3':[]}
+# Export analytic 2D contours as closed polylines with exact circular arc bulges.
+def contour_data(f):
+ data=[]
+ for w in f.Wires:
+  if len(w.Edges)==1 and isinstance(w.Edges[0].Curve,Part.Circle):
+   c=w.Edges[0].Curve;data.append({'type':'CIRCLE','center':[c.Center.x,c.Center.y],'radius':c.Radius});continue
+  ordered=w.OrderedEdges;nodes=[];current=None;last=None
+  for e in ordered:
+   a=e.valueAt(e.FirstParameter);b=e.valueAt(e.LastParameter);mid=e.valueAt((e.FirstParameter+e.LastParameter)/2)
+   if current is None:
+    if e.Orientation=='Reversed':a,b=b,a
+   elif (b-current).Length<(a-current).Length:a,b=b,a
+   if current is not None:assert (a-current).Length<1e-5
+   bulge=0
+   if isinstance(e.Curve,Part.Circle):
+    c=e.Curve.Center
+    ang=lambda p:math.atan2(p.y-c.y,p.x-c.x)
+    aa,bb,mm=ang(a),ang(b),ang(mid);sweep=(bb-aa)%(2*math.pi)
+    if (mm-aa)%(2*math.pi)>sweep+1e-7:sweep-=2*math.pi
+    bulge=math.tan(sweep/4)
+   nodes.append([a.x,a.y,bulge]);current=b
+  assert (current-V(nodes[0][0],nodes[0][1])).Length<1e-5
+  data.append({'type':'LWPOLYLINE','closed':True,'points':nodes})
+ return data
+contours={}
+for name,f in forms.items():
+ assert f.isValid() and len(f.Faces)==1
+ profile=D.addObject('PartDesign::Feature',name+'_Profil');lib.addObject(profile);profile.Label=name+' — contour CNC';profile.Shape=f
+ body=D.addObject('Part::Extrusion',name);lib.addObject(body);body.Base=profile;body.DirMode='Normal';body.LengthFwd=T;body.Solid=True;body.Label=name.replace('_',' ');body.ViewObject.ShapeColor=colors[name]
+ for typ,prop in [('App::PropertyInteger','Quantite'),('App::PropertyString','Fabrication')]:body.addProperty(typ,prop,'CNC')
+ body.Quantite=qty[name];body.Fabrication='Carbone 4 mm ; fraise Ø3 ; contour nominal sans compensation outil'
+ D.recompute();masters[name]=body;profile.Visibility=False;body.Visibility=False
+ solid=f.extrude(V(0,0,T));assert solid.isValid() and len(solid.Solids)==1
+ Import.export([body],str(OUT/'STEP'/(name+'.step')))
+ hs=[w for w in f.Wires if not w.isSame(f.OuterWire)]
+ ds=[w.distToShape(f.OuterWire)[0] for w in hs]+[w.distToShape(v)[0] for i,w in enumerate(hs) for v in hs[i+1:]]
+ original=sourceface({'01_Platine_centrale':'Base','02_Bras_court':'Bras court','03_Bras_long':'Bras long','04_Socle_moteur':'Socle'}[name]) if name!='05_Coupon_ajustement' else None
+ report['formes'][name]={'quantite':qty[name],'solide_valide':solid.isValid(),'perimetre_usinage_mm':round(sum(e.Length for e in f.Edges),3),'perimetre_origine_mm':round(sum(e.Length for e in original.Edges),3) if original else None,'aire_mm2':round(f.Area,3),'aire_originale_mm2':round(original.Area,3) if original else None,'ligament_min_mm':round(min(ds),3),'nombre_contours':len(f.Wires),'contours_fermes':all(w.isClosed() for w in f.Wires),'encombrement_mm':[round(f.BoundBox.XLength,3),round(f.BoundBox.YLength,3),T]}
+ contours[name]=contour_data(f)
+def link(name,key,pos=(0,0,0),rotation=None):
+ o=D.addObject('App::Link',name);assembly.addObject(o);o.setLink(masters[key]);o.LinkPlacement=App.Placement(V(*pos),rotation or App.Rotation());o.Visibility=True;links.append(o)
+ s=forms[key].extrude(V(0,0,T));s.Placement=o.LinkPlacement;shapes.append((name,s));return o
+link('Platine_inferieure','01_Platine_centrale',(0,0,-20-T));link('Platine_superieure','01_Platine_centrale')
+mr=App.Rotation(V(0,0,1),-55);a=math.radians(22.198102);tab=V(roots[0][0]+116*math.cos(a),roots[0][1]+116*math.sin(a),0);mp=tab-mr.multVec(V(-14.184693509,-8.329579633,0))
+for sx in [-1,1]:
+ for sy in [-1,1]:
+  q=('D' if sx>0 else 'G')+('_AV' if sy>0 else '_AR')
+  for label,key,(x,y,a),rx in [('Court','02_Bras_court',roots[0],-67.5),('Long','03_Bras_long',roots[1],-82.5)]:
+   angle=math.degrees(math.atan2(sy*math.sin(math.radians(a)),sx*math.cos(math.radians(a))))
+   rr=App.Rotation(V(0,0,1),angle).multiply(App.Rotation(V(1,0,0),90));p=V(sx*x,sy*y,-10)-rr.multVec(V(rx,0,T/2))
+   link('Bras_'+label+'_'+q,key,tuple(p),rr)
+  M=App.Matrix();M.A11=sx;M.A22=sy;M.A33=sx*sy;rr=App.Rotation(M).multiply(mr)
+  for z,label in [(-15-T,'Bas'),(-5,'Haut')]:link('Support_moteur_'+label+'_'+q,'04_Socle_moteur',(sx*mp.x,sy*mp.y,z+(T if sx*sy<0 else 0)),rr)
+  for x,y in [(-10.100031344,-19.6884419),(15.045,-19.820),(2.584,19.186)]:
+   p=mp+mr.multVec(V(x,y,0));sp=Part.makeCylinder(2.75,10,V(sx*p.x,sy*p.y,-15)).cut(Part.makeCylinder(1.65,10,V(sx*p.x,sy*p.y,-15)))
+   o=D.addObject('PartDesign::Feature','Entretoise_M3_10_'+q);fast.addObject(o);o.Shape=sp;o.ViewObject.ShapeColor=(.65,.7,.75)
+for x in [-15.25,15.25]:
+ for y in [-15.25,15.25]:
+  o=D.addObject('PartDesign::Feature','Entretoise_M3_20');fast.addObject(o);o.Shape=Part.makeCylinder(3,20,V(x,y,-20)).cut(Part.makeCylinder(1.65,20,V(x,y,-20)));o.ViewObject.ShapeColor=(.65,.7,.75)
+D.recompute()
+# Detect unintended carbon/ carbon overlap in the assembled chassis.
+for i,(n,s) in enumerate(shapes):
+ for m,t in shapes[i+1:]:
+  if s.BoundBox.intersect(t.BoundBox):
+   vol=s.common(t).Volume
+   if vol>.001:report['collisions_carbone_mm3'].append([n,m,round(vol,6)])
+assert not report['collisions_carbone_mm3'],report['collisions_carbone_mm3']
+report['volume_carbone_chassis_mm3']=round(sum(forms[n].Area*T*q for n,q in qty.items() if 'Coupon' not in n),3)
+report['volume_origine_meme_epaisseur_mm3']=round(sum(d['aire_originale_mm2']*T*d['quantite'] for d in report['formes'].values() if d['aire_originale_mm2'] is not None),3)
+(OUT/'contours_CNC.json').write_text(json.dumps(contours,indent=2),encoding='utf-8');(OUT/'verification_CNC.json').write_text(json.dumps(report,indent=2,ensure_ascii=False),encoding='utf-8')
+# Separate planar layout at true scale (not a production nesting).
+layout=D.addObject('App::Part','Vue_decoupe');layout.Label='03 — Pièces à plat, une de chaque / hors assemblage'
+for key,xy in zip(forms,[(0,0),(180,90),(180,20),(160,-70),(160,-130)]):
+ o=D.addObject('App::Link','Aplat_'+key);layout.addObject(o);o.setLink(masters[key]);o.LinkPlacement=App.Placement(V(xy[0],xy[1],0),App.Rotation());o.Visibility=True
+layout.Visibility=False
+lib.Visibility=False
+D.recompute();D.saveAs(str(OUT/'Aerolith_Chassis_CNC_R1.FCStd'))
+# Export assembly from globally positioned solids, independent from link visibility.
+E=App.newDocument('Export_Chassis_CNC');ex=[]
+for name,s in shapes:
+ o=E.addObject('PartDesign::Feature',name);o.Shape=s;ex.append(o)
+for spacer in fast.Group:
+ o=E.addObject('PartDesign::Feature',spacer.Name);o.Shape=spacer.Shape;ex.append(o)
+Import.export(ex,str(OUT/'STEP/Aerolith_Chassis_CNC_R1_assemble.step'));App.closeDocument(E.Name);App.setActiveDocument(D.Name)
+if App.GuiUp:
+ import FreeCADGui as Gui
+ v=Gui.activeDocument().activeView();v.viewAxonometric();v.fitAll();Gui.updateGui();v.saveImage(str(OUT/'Chassis_CNC_R1_assemble.png'),1920,1200,'White')
+ assembly.Visibility=False;layout.Visibility=True;v.viewTop();v.fitAll();Gui.updateGui();v.saveImage(str(OUT/'Chassis_CNC_R1_pieces.png'),1920,1200,'White')
+ layout.Visibility=False;assembly.Visibility=True;v.viewAxonometric();v.fitAll();D.recompute();D.save()
+print(json.dumps(report,ensure_ascii=False))
