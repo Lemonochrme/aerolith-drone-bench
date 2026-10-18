@@ -19,6 +19,7 @@ Rondelle M4;8;Acier;;Fermeture centrale
 Support souple FC;4;Silicone;L7 / passage M3;Encombrement provisoire
 FC;1;Electronique;Entraxe 30.5x30.5;"Carte et composants generiques ; modele exact non fourni"
 ESC;4;Electronique;50x18x8;"Reference non choisie ; dimensions provisoires hors cables"
+Collier ESC;4;Nylon;2.5x100;Passages integres dans les platines
 Adhesif isolant ESC;4;Isolant;50x18x2;Montage provisoire
 GTSkytenRC 3115 640KV;4;Moteur;Enveloppe Ø38 / corps33 / arbre M5;"Pas de plan fabricant disponible ; verifier le percage 19x19 et le passage central Ø9"
 Helice tripale 9x5x3;4;Helice;Ø228.6 / pas127;"Deux de chaque sens ; forme simplifiee, pas une CAO constructeur"

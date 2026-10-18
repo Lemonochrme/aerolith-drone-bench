@@ -66,16 +66,16 @@ def sourceface(prefix):
  for e in edges:e.fixTolerance(.001)
  return Part.makeFace([Part.Wire(w) for w in Part.sortEdges(edges,.01)],'Part::FaceMakerBullseye')
 # Main plate: remove logos, microcuts and the unused M2 electronics pattern.
-basepoints=[(-25,-135),(25,-135),(27,-124),(27,-98),(44,-60),(52,-25),(64,-8),(64,8),(52,25),(44,60),(27,98),(27,124),(25,135),(-25,135),(-27,124),(-27,98),(-44,60),(-52,25),(-64,8),(-64,-8),(-52,-25),(-44,-60),(-27,-98),(-27,-124)]
+basepoints=[(-20,-125),(20,-125),(29,-112),(27,-98),(43,-62),(52,-25),(60,-6),(60,6),(52,25),(43,62),(27,98),(29,112),(20,125),(-20,125),(-29,112),(-27,98),(-43,62),(-52,25),(-60,6),(-60,-6),(-52,-25),(-43,-62),(-27,-98),(-29,-112)]
 rootfeet=[]
 for x,y,a in [(14.180925185,102.561125984,22.198102),(41.414460411,11.777008489,47.198102)]:
  for sx in [-1,1]:
   for sy in [-1,1]:
    for side in [-1,1]:
     v=rot(V(4.5,side*8.5),a);rootfeet.append((sx*(x+v.x),sy*(y+v.y)))
-baseholes=[]
-for e in next(v for k,v in src.items() if k.startswith('Base')):
- if e[0]=='CIRCLE' and e[2]>=1.5 and all(math.hypot(e[1][0]-x,e[1][1]-y)>6 for x,y in rootfeet):baseholes.append(circle(e[1][0],e[1][1],1.65 if e[2]<1.7 else e[2]))
+# Keep only used electronics and structural mounting patterns.
+baseholes=[circle(x,y,1.65) for x in [-15.25,15.25] for y in [-15.25,15.25]]
+baseholes += [circle(x,y,2.25) for x in [-25,25] for y in [-25,25]]
 for x,y in rootfeet:baseholes.append(circle(x,y,1.65))
 roots=[(14.180925185,102.561125984,22.198102),(41.414460411,11.777008489,47.198102)]
 for x,y,a in roots:
@@ -85,7 +85,10 @@ for x in [-25,25]:
  for y in [-45,45]:baseholes.append(capsule(x,y,27,5,90))
 for x in [-10,10]:
  for y in [-79,79]:baseholes.append(capsule(x,y,22,7,90))
-base=face(rounded(basepoints,7),baseholes)
+# Shared central windows and outer windows accept two ESC straps per row.
+for y in [-70,70]:
+ for x in [-29,0,29]:baseholes.append(capsule(x,y,8,4,90))
+base=face(rounded(basepoints,12),baseholes)
 # Keep tenon lands and assembly centerlines; soften nonfunctional corners.
 def arm(long=False):
  shift=15 if long else 0;root=-67.5-shift;ends=[48.5+shift,68.5+shift];xmin=-80-shift;xmax=80+shift
@@ -107,7 +110,7 @@ short=arm();long=arm(True)
 # Motor support: smooth outline, retain mounting centers and shaft clearance.
 MC=V(2.563971143,-2.313539946)
 MOTOR_CENTER=MC+V(0,-7)
-mpoints=[(MC.x+x,MC.y+y) for x,y in [(-24,-29),(24,-29),(29,-12),(27,13),(13,29),(-13,29),(-27,13),(-29,-12)]]
+mpoints=[(MC.x+x,MC.y+y) for x,y in [(-13,-29),(13,-29),(27,-16),(29,-4),(27,14),(10,29),(-10,29),(-27,14),(-29,-4),(-27,-16)]]
 mholes=[circle(MOTOR_CENTER.x,MOTOR_CENTER.y,4.5)]
 # Provisional GTSkytenRC bolt pattern, must be checked on the actual motor.
 for x in [-9.5,9.5]:
@@ -118,7 +121,7 @@ for x,y,a,side in [(-11.968885524,1.421840517,77.198102,1),(17.136843509,1.26847
  v=rot(V(4.5,side*8.5),a);motorfeet.append((x+v.x,y+v.y))
 motorfeet += [(MC.x,MC.y+23),(MC.x-23.5,MC.y-4),(MC.x+23.5,MC.y-4)]
 for x,y in motorfeet:mholes.append(circle(x,y,1.65))
-motor=face(rounded(mpoints,5),mholes)
+motor=face(rounded(mpoints,8),mholes)
 # Fit coupon: alternative widths for actual sheet and spindle runout.
 couponholes=[mortise(-25+i*12,0,14.08,[4.0,4.025,4.05,4.075,4.1,4.15][i],90) for i in range(6)]
 coupon=face(rounded([(-37,-16),(47,-16),(47,16),(-37,16)],4),couponholes)
@@ -127,7 +130,7 @@ forms={'01_Platine_centrale':base,'02_Bras_court':short,'03_Bras_long':long,'04_
 # Native FreeCAD project, separated from the calibration bench.
 import Import
 (OUT/'dxf').mkdir(exist_ok=True);(OUT/'.build').mkdir(exist_ok=True)
-D=App.newDocument('Aerolith_Chassis_CNC_R5');D.Label='Aerolith / Châssis CNC R5 / carbone 4 mm / fraise 3 mm'
+D=App.newDocument('Aerolith_Chassis_CNC_R6');D.Label='Aerolith / Châssis CNC R6 / carbone 4 mm / fraise 3 mm'
 settings=D.addObject('Spreadsheet::Sheet','Parametres');settings.Label='00 / Références de fabrication ; reconstruction par macro'
 for c,val in {'A1':'PARAMÈTRE / référence','B1':'VALEUR','A2':'Épaisseur carbone (mm)','B2':str(T),'A3':'Fraise (mm)','B3':str(TOOL),'A4':'Jeu nominal rainure (mm)','B4':str(CLEAR),'A5':'Rainure (mm)','B5':str(T+CLEAR),'A6':'Entretoises centrales (mm)','B6':'20','A7':'Entretoises moteur (mm)','B7':'16','A10':'FC / entraxe suppose','B10':'30.5 x 30.5','A11':'ESC / enveloppe provisoire','B11':'50 x 18 x 8 mm','A12':'Batterie / enveloppe provisoire','B12':'148 x 44 x 52 mm','A13':'Moteurs','B13':'GTSkytenRC 3115 640KV / dimensions a confirmer','A14':'Helices','B14':'9x5x3 / diametre 228.6 / pas 127','A8':'Note','B8':'Modifier la macro et reconstruire pour changer les interfaces'}.items():settings.set(c,val)
 settings.setColumnWidth('A',320);settings.setColumnWidth('B',420);settings.setStyle('A1:B1','bold','add')
@@ -136,7 +139,7 @@ assembly=D.addObject('App::Part','Chassis');assembly.Label='02 / Châssis assemb
 masters={};links=[];shapes=[]
 qty={'01_Platine_centrale':2,'02_Bras_court':4,'03_Bras_long':4,'04_Socle_moteur':8,'05_Coupon_ajustement':1}
 colors={'01_Platine_centrale':(.13,.18,.23),'02_Bras_court':(.19,.25,.30),'03_Bras_long':(.19,.25,.30),'04_Socle_moteur':(.17,.22,.27),'05_Coupon_ajustement':(.3,.5,.65)}
-report={'version':'R5','epaisseur_mm':T,'fraise_mm':TOOL,'jeu_rainure_mm':CLEAR,'gcode_genere':False,'formes':{},'collisions_carbone_mm3':[]}
+report={'version':'R6','epaisseur_mm':T,'fraise_mm':TOOL,'jeu_rainure_mm':CLEAR,'gcode_genere':False,'formes':{},'collisions_carbone_mm3':[]}
 # Export analytic 2D contours as closed polylines with exact circular arc bulges.
 def contour_data(f):
  data=[]
@@ -244,6 +247,13 @@ for i,(x,y) in enumerate([(-14,-60),(14,-60),(-14,60),(14,60)],1):
  chips=[]
  for yy in [-16,-5,6,17]:chips.append(Part.makeBox(13,8,6.4,V(x-6.5,y+yy-4,-16.4)))
  addpart('ESC_'+str(i)+'_composants',Part.makeCompound(chips),elec,black,'Composants indicatifs','equipment')
+# Four ESC ties use six slots, sharing the central slot in each row.
+for x,y in [(-14,-60),(14,-60),(-14,60),(14,60)]:
+ xl=-29 if x<0 else 0;xr=xl+29
+ yy=(1 if y>0 else -1)*(68.5 if x<0 else 71.5)
+ tie=Part.makeBox(29.8,2.5,.8,V(xl-.4,yy-1.25,-24.8)).fuse(Part.makeBox(29.8,2.5,.8,V(xl-.4,yy-1.25,-10)))
+ for xx in [xl,xr]:tie=tie.fuse(Part.makeBox(.8,2.5,15.6,V(xx-.4,yy-1.25,-24.8)))
+ addpart('Collier_ESC',tie.removeSplitter(),elec,(.83,.33,.12),'Collier nylon 2.5x100, trajet simplifie ; six passes dans les platines','equipment')
 # Battery remains outside the two plates; no electrical specification inferred.
 addpart('Batterie_provisoire',Part.makeBox(44,148,52,V(-22,-74,11)),elec,(.18,.32,.53),'Reference non choisie ; enveloppe 148x44x52 mm, aucune capacite ni tension imposee','equipment')
 addpart('Pad_batterie',Part.makeBox(40,140,7,V(-20,-70,4)),elec,(.25,.25,.25),'Pad isolant indicatif 7 mm','equipment')
@@ -313,6 +323,14 @@ for i,obj in enumerate(hardware):
    volume=obj.Shape.common(other.Shape).Volume
    if volume>.01:report['interferences_fixations'].append([obj.Name,other.Name,round(volume,4)])
 assert not report['interferences_fixations'],report['interferences_fixations']
+report['interferences_colliers_ESC']=[]
+for tie in [o for o in equipment if o.Name.startswith('Collier_ESC')]:
+ for obj in equipment:
+  if obj is tie:continue
+  if tie.Shape.BoundBox.intersect(obj.Shape.BoundBox):
+   volume=tie.Shape.common(obj.Shape).Volume
+   if volume>.01:report['interferences_colliers_ESC'].append([tie.Name,obj.Name,round(volume,4)])
+assert not report['interferences_colliers_ESC'],report['interferences_colliers_ESC']
 cc=mp+mr.multVec(MOTOR_CENTER);centers=[(sx*cc.x,sy*cc.y) for sx in [-1,1] for sy in [-1,1]]
 report['ecart_disques_helices_mm']=round(min(math.dist(a,b) for i,a in enumerate(centers) for b in centers[i+1:])-228.6,3)
 report['interferences_disques_electronique']=[]
