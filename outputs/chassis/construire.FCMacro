@@ -1,7 +1,7 @@
 import FreeCAD as App, Part, math, json
 from pathlib import Path
 V=App.Vector
-T=4.0; TOOL=3.0; CLEAR=.2
+T=4.0; TOOL=3.0; CLEAR=.05
 OUT=Path(__file__).resolve().parent
 src=json.loads((OUT/'sources/contours.json').read_text(encoding='utf-8'))
 def rot(p,a):
@@ -13,7 +13,8 @@ def rounded(points,r=4,variable=False):
   prev,nxt=ps[i-1],ps[(i+1)%len(ps)];u=p-prev;u.normalize();v=nxt-p;v.normalize()
   angle=math.atan2(u.cross(v).z,u.dot(v))
   if abs(angle)<1e-7:corners.append((p,p,None));continue
-  radius=(TOOL/2+.1 if angle<0 else 1.0) if variable else r
+  radius=(0 if angle<0 else 1.0) if variable else r
+  if radius<1e-8:corners.append((p,p,None));continue
   trim=radius*math.tan(abs(angle)/2)
   cap=min((p-prev).Length,(nxt-p).Length)*.45
   if trim>cap:
@@ -33,6 +34,23 @@ def capsule(cx,cy,length,width,angle=0):
  ps=[V(-h,-radius),V(h,-radius),V(h,radius),V(-h,radius)]
  es=[Part.makeLine(ps[0],ps[1]),Part.Arc(ps[1],V(h+radius,0),ps[2]).toShape(),Part.makeLine(ps[2],ps[3]),Part.Arc(ps[3],V(-h-radius,0),ps[0]).toShape()]
  w=Part.Wire(es);w.rotate(V(),V(0,0,1),angle);w.translate(V(cx,cy));return w
+MORTISES={}
+def mortise(cx,cy,length,width,angle=0):
+ key=(length,width)
+ if key not in MORTISES:
+  r=TOOL/2+.1
+  f=Part.Face(rounded([(-length/2,-width/2),(length/2,-width/2),(length/2,width/2),(-length/2,width/2)],r)).extrude(V(0,0,1))
+  for sx in [-1,1]:
+   for sy in [-1,1]:
+    a=V(sx*(length/2-r),sy*(width/2-r));b=V(sx*(length/2-r/math.sqrt(2)),sy*(width/2-r/math.sqrt(2)))
+    delta=b-a;mid=(a+b)*.5
+    sweep=Part.Face(capsule(mid.x,mid.y,delta.Length+2*r,2*r,math.degrees(math.atan2(delta.y,delta.x)))).extrude(V(0,0,1))
+    f=f.fuse(sweep).removeSplitter()
+  bottom=[q for q in f.Faces if q.BoundBox.ZLength<1e-6 and abs(q.CenterOfMass.z)<1e-6]
+  assert len(bottom)==1
+  MORTISES[key]=bottom[0].OuterWire
+ w=MORTISES[key].copy();w.rotate(V(),V(0,0,1),angle);w.translate(V(cx,cy));return w
+
 def circle(x,y,r):return Part.Wire([Part.makeCircle(r,V(x,y))])
 def face(outer,holes):return Part.makeFace([outer]+holes,'Part::FaceMakerBullseye')
 def sourceface(prefix):
@@ -45,13 +63,20 @@ def sourceface(prefix):
  return Part.makeFace([Part.Wire(w) for w in Part.sortEdges(edges,.01)],'Part::FaceMakerBullseye')
 # Main plate: remove logos, microcuts and the unused M2 electronics pattern.
 basepoints=[(-25,-135),(25,-135),(27,-124),(27,-98),(44,-60),(52,-25),(64,-8),(64,8),(52,25),(44,60),(27,98),(27,124),(25,135),(-25,135),(-27,124),(-27,98),(-44,60),(-52,25),(-64,8),(-64,-8),(-52,-25),(-44,-60),(-27,-98),(-27,-124)]
+rootfeet=[]
+for x,y,a in [(14.180925185,102.561125984,22.198102),(41.414460411,11.777008489,47.198102)]:
+ for sx in [-1,1]:
+  for sy in [-1,1]:
+   for side in [-1,1]:
+    v=rot(V(4.5,side*8.5),a);rootfeet.append((sx*(x+v.x),sy*(y+v.y)))
 baseholes=[]
 for e in next(v for k,v in src.items() if k.startswith('Base')):
- if e[0]=='CIRCLE' and e[2]>=1.5:baseholes.append(circle(e[1][0],e[1][1],1.65 if e[2]<1.7 else e[2]))
+ if e[0]=='CIRCLE' and e[2]>=1.5 and all(math.hypot(e[1][0]-x,e[1][1]-y)>6 for x,y in rootfeet):baseholes.append(circle(e[1][0],e[1][1],1.65 if e[2]<1.7 else e[2]))
+for x,y in rootfeet:baseholes.append(circle(x,y,1.65))
 roots=[(14.180925185,102.561125984,22.198102),(41.414460411,11.777008489,47.198102)]
 for x,y,a in roots:
  for sx in [-1,1]:
-  for sy in [-1,1]:baseholes.append(capsule(sx*x,sy*y,10.2+2*(TOOL/2+.1)+T+CLEAR,T+CLEAR,math.degrees(math.atan2(sy*math.sin(math.radians(a)),sx*math.cos(math.radians(a))))))
+  for sy in [-1,1]:baseholes.append(mortise(sx*x,sy*y,14.08,T+CLEAR,math.degrees(math.atan2(sy*math.sin(math.radians(a)),sx*math.cos(math.radians(a))))))
 for x in [-25,25]:
  for y in [-45,45]:baseholes.append(capsule(x,y,27,5,90))
 for x in [-10,10]:
@@ -60,43 +85,48 @@ base=face(rounded(basepoints,7),baseholes)
 # Keep tenon lands and assembly centerlines; soften nonfunctional corners.
 def arm(long=False):
  shift=15 if long else 0;root=-67.5-shift;ends=[48.5+shift,68.5+shift];xmin=-80-shift;xmax=80+shift
- low=[(xmin,-10),(root-5,-10),(root-5,-10-T),(root+5,-10-T),(root+5,-10),(-48-shift,-10),(-43-shift,-13.5),(14+shift,-9),(23+shift,-5),(ends[0]-4,-5),(ends[0]-4,-5-T),(ends[0]+4,-5-T),(ends[0]+4,-5),(ends[1]-4,-5),(ends[1]-4,-5-T),(ends[1]+4,-5-T),(ends[1]+4,-5),(xmax,-5)]
+ low=[(xmin,-10),(root-7,-10),(root-7,-10-T),(root+7,-10-T),(root+7,-10),(-48-shift,-10),(-43-shift,-13.5),(9+shift,-9),(18+shift,-8),(ends[0]-6,-8),(ends[0]-6,-8-T),(ends[0]+6,-8-T),(ends[0]+6,-8),(ends[1]-6,-8),(ends[1]-6,-8-T),(ends[1]+6,-8-T),(ends[1]+6,-8),(xmax,-8)]
  ps=low+[(x,-y) for x,y in reversed(low)]
- holes=[]
- # Rounded lightening windows with a thicker uninterrupted upper/lower chord.
- start=-39-shift;stop=8+shift;count=4 if not long else 5
- for i in range(count):
-  x=start+(stop-start)*i/(count-1);cy=1.2 if i%2==0 else -1.2
-  holes.append(capsule(x,cy,13 if not long else 14,7,22 if i%2==0 else -22))
- if long:holes.append(circle(-71,0,3.25))
- return face(rounded(ps,variable=True),holes)
+ f=Part.Face(rounded(ps,variable=True))
+ # Local cutter relief removes material at shoulders; no enlarged mortise.
+ for i,(x,y) in enumerate(ps):
+  p=V(x,y);u=p-V(*ps[i-1]);v=V(*ps[(i+1)%len(ps)])-p
+  if u.cross(v).z<-1e-7:f=f.cut(Part.Face(circle(x,y,TOOL/2+.1)))
+ outer=f.removeSplitter().Faces[0].OuterWire
+ return face(outer,[circle(root-3.5,-2,1.65),circle(sum(ends)/2-3.5,0,1.65)])
 short=arm();long=arm(True)
 # Motor support: smooth outline, retain mounting centers and shaft clearance.
-mpoints=[(-23,-29),(28,-29),(28,-15),(23,12),(16,29),(3,36),(-10,29),(-18,12)]
-mholes=[]
-for e in next(v for k,v in src.items() if k.startswith('Socle')):
- if e[0]=='CIRCLE':mholes.append(circle(e[1][0],e[1][1],1.65 if e[2]<1.7 else e[2]))
-for x,y,a in [(-14.184693509,-8.329579633,77.198102),(-9.75307754,11.173260666,77.198102),(19.249767711,-8.505751186,102.198102),(15.023919308,11.042706692,102.198102)]:mholes.append(capsule(x,y,8.2+2*(TOOL/2+.1)+T+CLEAR,T+CLEAR,a))
-motor=face(rounded(mpoints,5),mholes)
+MC=V(2.563971143,-2.313539946)
+MOTOR_CENTER=MC+V(0,-7)
+mpoints=[(MC.x-35,MC.y-34),(MC.x+35,MC.y-34),(MC.x+35,MC.y+34),(MC.x-35,MC.y+34)]
+mholes=[circle(MOTOR_CENTER.x,MOTOR_CENTER.y,4.5)]
+# Provisional GTSkytenRC bolt pattern, must be checked on the actual motor.
+for x in [-9.5,9.5]:
+ for y in [-9.5,9.5]:mholes.append(circle(MOTOR_CENTER.x+x,MOTOR_CENTER.y+y,1.65))
+for x,y,a in [(-14.184693509,-8.329579633,77.198102),(-9.75307754,11.173260666,77.198102),(19.249767711,-8.505751186,102.198102),(15.023919308,11.042706692,102.198102)]:mholes.append(mortise(x,y,12.08,T+CLEAR,a))
+motorfeet=[]
+for x,y,a,side in [(-11.968885524,1.421840517,77.198102,1),(17.136843509,1.268477753,102.198102,-1)]:
+ v=rot(V(4.5,side*8.5),a);motorfeet.append((x+v.x,y+v.y))
+for x,y in motorfeet+[(MC.x,MC.y+27)]:mholes.append(circle(x,y,1.65))
+motor=face(rounded(mpoints,6),mholes)
 # Fit coupon: alternative widths for actual sheet and spindle runout.
-couponholes=[capsule(-25+i*12,0,15,4.0+i*.1,90) for i in range(6)]
+couponholes=[mortise(-25+i*12,0,14.08,[4.0,4.025,4.05,4.075,4.1,4.15][i],90) for i in range(6)]
 coupon=face(rounded([(-37,-16),(47,-16),(47,16),(-37,16)],4),couponholes)
 forms={'01_Platine_centrale':base,'02_Bras_court':short,'03_Bras_long':long,'04_Socle_moteur':motor,'05_Coupon_ajustement':coupon}
 
 # Native FreeCAD project, separated from the calibration bench.
 import Import
 (OUT/'dxf').mkdir(exist_ok=True);(OUT/'.build').mkdir(exist_ok=True)
-D=App.newDocument('Aerolith_Chassis_CNC_R1');D.Label='Aerolith / ChÃ¢ssis CNC R1 / carbone 4 mm / fraise 3 mm'
-settings=D.addObject('Spreadsheet::Sheet','Parametres');settings.Label='00 / RÃ©fÃ©rences de fabrication ; reconstruction par macro'
-for c,val in {'A1':'PARAMÃˆTRE / rÃ©fÃ©rence','B1':'VALEUR','A2':'Ã‰paisseur carbone (mm)','B2':str(T),'A3':'Fraise (mm)','B3':str(TOOL),'A4':'Jeu nominal rainure (mm)','B4':str(CLEAR),'A5':'Rainure (mm)','B5':str(T+CLEAR),'A6':'Entretoises centrales (mm)','B6':'20','A7':'Entretoises moteur (mm)','B7':'10','A8':'Note','B8':'Modifier la macro et reconstruire pour changer les interfaces'}.items():settings.set(c,val)
+D=App.newDocument('Aerolith_Chassis_CNC_R2');D.Label='Aerolith / Châssis CNC R2 / carbone 4 mm / fraise 3 mm'
+settings=D.addObject('Spreadsheet::Sheet','Parametres');settings.Label='00 / Références de fabrication ; reconstruction par macro'
+for c,val in {'A1':'PARAMÈTRE / référence','B1':'VALEUR','A2':'Épaisseur carbone (mm)','B2':str(T),'A3':'Fraise (mm)','B3':str(TOOL),'A4':'Jeu nominal rainure (mm)','B4':str(CLEAR),'A5':'Rainure (mm)','B5':str(T+CLEAR),'A6':'Entretoises centrales (mm)','B6':'20','A7':'Entretoises moteur (mm)','B7':'16','A10':'FC / entraxe suppose','B10':'30.5 x 30.5','A11':'ESC / enveloppe provisoire','B11':'50 x 18 x 8 mm','A12':'Batterie / enveloppe provisoire','B12':'148 x 44 x 52 mm','A13':'Moteurs','B13':'GTSkytenRC 3115 640KV / dimensions a confirmer','A14':'Helices','B14':'9x5x3 / diametre 228.6 / pas 127','A8':'Note','B8':'Modifier la macro et reconstruire pour changer les interfaces'}.items():settings.set(c,val)
 settings.setColumnWidth('A',320);settings.setColumnWidth('B',420);settings.setStyle('A1:B1','bold','add')
-lib=D.addObject('App::Part','Bibliotheque');lib.Label='01 / PiÃ¨ces planes / historique dâ€™extrusion'
-assembly=D.addObject('App::Part','Chassis');assembly.Label='02 / ChÃ¢ssis assemblÃ©'
-fast=D.addObject('App::Part','Entretoises');assembly.addObject(fast);fast.Label='Entretoises mÃ©talliques indicatives'
+lib=D.addObject('App::Part','Bibliotheque');lib.Label='01 / Pièces planes / historique d’extrusion'
+assembly=D.addObject('App::Part','Chassis');assembly.Label='02 / Châssis assemblé'
 masters={};links=[];shapes=[]
 qty={'01_Platine_centrale':2,'02_Bras_court':4,'03_Bras_long':4,'04_Socle_moteur':8,'05_Coupon_ajustement':1}
 colors={'01_Platine_centrale':(.13,.18,.23),'02_Bras_court':(.19,.25,.30),'03_Bras_long':(.19,.25,.30),'04_Socle_moteur':(.17,.22,.27),'05_Coupon_ajustement':(.3,.5,.65)}
-report={'version':'R1','epaisseur_mm':T,'fraise_mm':TOOL,'jeu_rainure_mm':CLEAR,'gcode_genere':False,'formes':{},'collisions_carbone_mm3':[]}
+report={'version':'R2','epaisseur_mm':T,'fraise_mm':TOOL,'jeu_rainure_mm':CLEAR,'gcode_genere':False,'formes':{},'collisions_carbone_mm3':[]}
 # Export analytic 2D contours as closed polylines with exact circular arc bulges.
 def contour_data(f):
  data=[]
@@ -127,7 +157,7 @@ for name,f in forms.items():
  profile=D.addObject('PartDesign::Feature',name+'_Profil');lib.addObject(profile);profile.Label=name+' / contour CNC';profile.Shape=f
  body=D.addObject('Part::Extrusion',name);lib.addObject(body);body.Base=profile;body.DirMode='Normal';body.LengthFwd=T;body.Solid=True;body.Label=name.replace('_',' ');body.ViewObject.ShapeColor=colors[name]
  for typ,prop in [('App::PropertyInteger','Quantite'),('App::PropertyString','Fabrication')]:body.addProperty(typ,prop,'CNC')
- body.Quantite=qty[name];body.Fabrication='Carbone 4 mm ; fraise Ã˜3 ; contour nominal sans compensation outil'
+ body.Quantite=qty[name];body.Fabrication='Carbone 4 mm ; fraise Ø3 ; jeu total 0.05 mm ; reliefs locaux de fraise'
  D.recompute();masters[name]=body;profile.Visibility=False;body.Visibility=False
  solid=f.extrude(V(0,0,T));assert solid.isValid() and len(solid.Solids)==1
  hs=[w for w in f.Wires if not w.isSame(f.OuterWire)]
@@ -148,13 +178,126 @@ for sx in [-1,1]:
    rr=App.Rotation(V(0,0,1),angle).multiply(App.Rotation(V(1,0,0),90));p=V(sx*x,sy*y,-10)-rr.multVec(V(rx,0,T/2))
    link('Bras_'+label+'_'+q,key,tuple(p),rr)
   M=App.Matrix();M.A11=sx;M.A22=sy;M.A33=sx*sy;rr=App.Rotation(M).multiply(mr)
-  for z,label in [(-15-T,'Bas'),(-5,'Haut')]:link('Support_moteur_'+label+'_'+q,'04_Socle_moteur',(sx*mp.x,sy*mp.y,z+(T if sx*sy<0 else 0)),rr)
-  for x,y in [(-10.100031344,-19.6884419),(15.045,-19.820),(2.584,19.186)]:
-   p=mp+mr.multVec(V(x,y,0));sp=Part.makeCylinder(2.75,10,V(sx*p.x,sy*p.y,-15)).cut(Part.makeCylinder(1.65,10,V(sx*p.x,sy*p.y,-15)))
-   o=D.addObject('PartDesign::Feature','Entretoise_M3_10_'+q);fast.addObject(o);o.Shape=sp;o.ViewObject.ShapeColor=(.65,.7,.75)
+  for z,label in [(-18-T,'Bas'),(-2,'Haut')]:link('Support_moteur_'+label+'_'+q,'04_Socle_moteur',(sx*mp.x,sy*mp.y,z+(T if sx*sy<0 else 0)),rr)
+# Mechanical joints and equipment are defined below.
+hardware=[];equipment=[]
+joints=D.addObject('App::Part','Liaisons');assembly.addObject(joints);joints.Label='Equerres aluminium et visserie M3'
+elec=D.addObject('App::Part','Electronique');assembly.addObject(elec);elec.Label='FC 30.5 et 4 ESC provisoires'
+propulsion=D.addObject('App::Part','Propulsion');assembly.addObject(propulsion);propulsion.Label='3115 640KV / tripales 9x5x3'
+def addpart(name,shape,parent,color,spec,kind='hardware'):
+ assert shape.isValid(),name
+ o=D.addObject('PartDesign::Feature',name);parent.addObject(o);o.Shape=shape;o.ViewObject.ShapeColor=color
+ o.addProperty('App::PropertyString','Specification','Modele');o.Specification=spec
+ (hardware if kind=='hardware' else equipment).append(o);return o
+metal=(.65,.69,.73);black=(.12,.13,.15);green=(.08,.42,.24)
+def positioned(shape,p,rr=None):
+ shape=shape.copy();shape.Placement=App.Placement(p,rr or App.Rotation());return shape
+def spacer(name,x,y,z,L,rad=3,inner=1.65):
+ return addpart(name,Part.makeCylinder(rad,L,V(x,y,z)).cut(Part.makeCylinder(inner,L,V(x,y,z))),joints,metal,f'Entretoise metallique L{L} / passage {2*inner}')
+def bolt(name,p,axis,L,nutdist=None):
+ ax=V(*axis);ax.normalize();s=Part.makeCylinder(1.5,L,p,ax).fuse(Part.makeCylinder(2.75,3,p-ax*3,ax))
+ # Hex nut represented at the far clamped face, not at the thread tip.
+ o=addpart(name,s,joints,(.36,.39,.42),f'Vis M3x{L}, geometrie sans filetage')
+ dist=nutdist if nutdist is not None else 28 if 'Fermeture_racine' in name else 24 if 'Fermeture_' in name else 8 if 'racine' in name else 6
+ vertices=[V(3.175*math.cos(k*math.pi/3),3.175*math.sin(k*math.pi/3),0) for k in range(7)]
+ nut=Part.Face(Part.makePolygon(vertices)).extrude(V(0,0,4)).cut(Part.makeCylinder(1.6,4))
+ addpart('Ecrou_M3',positioned(nut,p+ax*dist,App.Rotation(V(0,0,1),ax)),joints,metal,'Ecrou frein M3, hauteur indicative 4, filetage non represente')
+ return o
+# One common bracket, made from 15x15x2 aluminium angle cut to 18.
+angle=Part.Face(Part.makePolygon([V(-9,2),V(9,2),V(9,17),V(1,17),V(-9,7),V(-9,2)])).extrude(V(0,0,2)).fuse(Part.makeBox(18,2,15,V(-9,2,0))).removeSplitter()
+angle=angle.cut(Part.makeCylinder(1.65,5,V(4.5,8.5,-1))).cut(Part.makeCylinder(1.65,6,V(-3.5,0,8),V(0,1,0))).removeSplitter()
+def brace(name,center,a,side,z):
+ ss=angle.copy()
+ if side<0:
+  ss=ss.mirror(V(),V(0,1,0))
+ rr=App.Rotation(V(0,0,1),a)
+ return addpart(name,positioned(ss,V(center.x,center.y,z),rr),joints,metal,'Corniere aluminium 15x15x2, L18 ; coin de semelle coupe 10x10 ; deux percages Ø3.3')
+for sx in [-1,1]:
+ for sy in [-1,1]:
+  q=('D' if sx>0 else 'G')+('_AV' if sy>0 else '_AR')
+  for label,(x,y,a) in [('Court',roots[0]),('Long',roots[1])]:
+   ag=math.degrees(math.atan2(sy*math.sin(math.radians(a)),sx*math.cos(math.radians(a))));center=V(sx*x,sy*y,0);n=rot(V(0,1),ag)
+   for side in [-1,1]:
+    brace('Equerre_racine_'+label+'_'+q,center,ag,side,-20)
+    foot=center+rot(V(4.5,0),ag)+n*(side*8.5);spacer('Entretoise_racine_L18',foot.x,foot.y,-18,18)
+    bolt('Fermeture_racine_M3x35',V(foot.x,foot.y,-24),(0,0,1),35)
+   bolt('Serrage_bras_racine_M3x16',V(center.x,center.y,-12)-rot(V(3.5,0),ag)-n*4,tuple(n),16)
+  # Motor clamp on the outer side of each arm, clear of the motor base.
+  for label,(x,y,a),rx in [('Court',roots[0],-67.5),('Long',roots[1],-82.5)]:
+   ag=math.degrees(math.atan2(sy*math.sin(math.radians(a)),sx*math.cos(math.radians(a))));u=rot(V(1,0),ag);n=rot(V(0,1),ag)
+   dist=(58.5 if label=='Court' else 73.5)-rx;center=V(sx*x,sy*y,0)+u*dist
+   # Select the outward side by distance from the motor axis.
+   worldmc=V(sx*(mp+mr.multVec(MOTOR_CENTER)).x,sy*(mp+mr.multVec(MOTOR_CENTER)).y,0)
+   side=1 if (center+n*8.5-worldmc).Length>(center-n*8.5-worldmc).Length else -1
+   brace('Equerre_moteur_'+label+'_'+q,center,ag,side,-18)
+   foot=center+rot(V(4.5,0),ag)+n*(side*8.5);spacer('Entretoise_moteur_L14',foot.x,foot.y,-16,14)
+   bolt('Fermeture_moteur_M3x30',V(foot.x,foot.y,-22),(0,0,1),30)
+   bolt('Serrage_bras_moteur_M3x16',V(center.x,center.y,-10)-u*3.5-n*(4 if side<0 else 2),tuple(n),16)
+  front=mp+mr.multVec(V(MC.x,MC.y+27));spacer('Entretoise_moteur_L16',sx*front.x,sy*front.y,-18,16)
+  bolt('Fermeture_avant_moteur_M3x30',V(sx*front.x,sy*front.y,-22),(0,0,1),30)
+for x in [-25,25]:
+ for y in [-25,25]:spacer('Entretoise_centrale_M4_L20',x,y,-20,20,4,2.25)
+for x in [-25,25]:
+ for y in [-25,25]:
+  addpart('Vis_centrale_M4x40',Part.makeCylinder(2,40,V(x,y,-24)).fuse(Part.makeCylinder(3.5,4,V(x,y,-28))),joints,black,'M4x40, fermeture des platines')
+  vertices=[V(x+4.042*math.cos(k*math.pi/3),y+4.042*math.sin(k*math.pi/3),4) for k in range(7)]
+  addpart('Ecrou_central_M4',Part.Face(Part.makePolygon(vertices)).extrude(V(0,0,5)).cut(Part.makeCylinder(2.1,5,V(x,y,4))),joints,metal,'Ecrou frein M4, hauteur indicative 5, filetage non represente')
+# FC mounting is independent from the structural spacers.
+fcface=face(rounded([(-18,-18),(18,-18),(18,18),(-18,18)],2),[circle(x,y,1.65) for x in [-15.25,15.25] for y in [-15.25,15.25]])
+fc=addpart('FC_30_5',positioned(fcface.extrude(V(0,0,1.6)),V(0,0,-13)),elec,green,'Entraxe 30.5x30.5 fourni ; carte 36x36x1.6 et composants indicatifs','equipment')
+addpart('FC_composants',Part.makeBox(12,12,2,V(-6,-6,-11.4)).fuse(Part.makeBox(12,6,5,V(-6,9,-11.4))),elec,black,'Implantation indicative, carte exacte non fournie','equipment')
 for x in [-15.25,15.25]:
  for y in [-15.25,15.25]:
-  o=D.addObject('PartDesign::Feature','Entretoise_M3_20');fast.addObject(o);o.Shape=Part.makeCylinder(3,20,V(x,y,-20)).cut(Part.makeCylinder(1.65,20,V(x,y,-20)));o.ViewObject.ShapeColor=(.65,.7,.75)
+  addpart('Silentbloc_FC',Part.makeCylinder(3.1,7,V(x,y,-20)).cut(Part.makeCylinder(1.65,7,V(x,y,-20))),elec,(.75,.25,.15),'Support souple indicatif L7','equipment')
+for i,(x,y) in enumerate([(-14,-60),(14,-60),(-14,60),(14,60)],1):
+ addpart('Isolant_ESC_'+str(i),Part.makeBox(18,50,2,V(x-9,y-25,-20)),elec,(.25,.25,.25),'Adhesif isolant provisoire 2 mm','equipment')
+ board=Part.makeBox(18,50,1.6,V(x-9,y-25,-18));addpart('ESC_'+str(i),board,elec,green,'Reference non choisie ; enveloppe 50x18x8 mm, hors cables','equipment')
+ chips=[]
+ for yy in [-16,-5,6,17]:chips.append(Part.makeBox(13,8,6.4,V(x-6.5,y+yy-4,-16.4)))
+ addpart('ESC_'+str(i)+'_composants',Part.makeCompound(chips),elec,black,'Composants indicatifs','equipment')
+# Battery remains outside the two plates; no electrical specification inferred.
+addpart('Batterie_provisoire',Part.makeBox(44,148,52,V(-22,-74,11)),elec,(.18,.32,.53),'Reference non choisie ; enveloppe 148x44x52 mm, aucune capacite ni tension imposee','equipment')
+addpart('Pad_batterie',Part.makeBox(40,140,7,V(-20,-70,4)),elec,(.25,.25,.25),'Pad isolant indicatif 7 mm','equipment')
+for x in [-15.25,15.25]:
+ for y in [-15.25,15.25]:bolt('Fixation_FC_M3x20',V(x,y,-24),(0,0,1),20,12.6)
+for y in [-45,45]:
+ strap=Part.makeBox(52,20,1,V(-26,y-10,63)).fuse(Part.makeBox(52,20,1,V(-26,y-10,-1)))
+ for x in [-26,25]:strap=strap.fuse(Part.makeBox(1,20,65,V(x,y-10,-1)))
+ addpart('Sangle_batterie',strap.removeSplitter(),elec,(.77,.37,.1),'Sangle indicative largeur 20 mm, passant dans les lumieres de la platine','equipment')
+# Nominal 9x5x3: 228.6 diameter, geometric pitch 127, three blades.
+def propeller(hand):
+ profiles=[]
+ for x,w in [(8.5,5),(15,13),(28,22),(52,24),(80,20),(103,12),(114.3,.7)]:
+  ell=Part.Wire([Part.Ellipse(V(),w/2,min(.85,w/3)).toShape()]);ell.rotate(V(),V(0,0,1),90);ell.rotate(V(),V(0,1,0),90)
+  pitch=hand*math.degrees(math.atan(127/(2*math.pi*x)));ell.rotate(V(),V(1,0,0),pitch);ell.translate(V(x,0,0));profiles.append(ell)
+ blade=Part.makeLoft(profiles,True,False);s=Part.makeCylinder(9,9,V(0,0,-4.5))
+ for a in [0,120,240]:
+  b=blade.copy();b.rotate(V(),V(0,0,1),a);s=s.fuse(b)
+ return s.cut(Part.makeCylinder(2.6,14,V(0,0,-7))).removeSplitter()
+props={hand:propeller(hand) for hand in [-1,1]}
+for sx in [-1,1]:
+ for sy in [-1,1]:
+  q=('D' if sx>0 else 'G')+('_AV' if sy>0 else '_AR');cc=mp+mr.multVec(MOTOR_CENTER);x,y=sx*cc.x,sy*cc.y
+  # Simplified 3115 envelope. GTSkytenRC manufacturer drawing not available.
+  shell=Part.makeCylinder(19,27,V(x,y,5)).cut(Part.makeCylinder(16.8,27,V(x,y,5)))
+  cap=Part.makeCylinder(19,3,V(x,y,32))
+  for a in range(0,360,60):
+   vv=rot(V(11,0),a);cap=cap.cut(Part.makeCylinder(3.5,5,V(x+vv.x,y+vv.y,31)))
+  addpart('GTSkytenRC_3115_640KV_'+q,shell.fuse(cap),propulsion,(.22,.23,.25),'Modele simplifie ; diametre 38 / corps 33 / arbre M5, dimensions GTSkytenRC non confirmees','equipment')
+  base=Part.makeCylinder(17,3,V(x,y,2))
+  for hx in [-9.5,9.5]:
+   for hy in [-9.5,9.5]:
+    vv=mr.multVec(V(hx,hy));base=base.cut(Part.makeCylinder(1.65,5,V(x+sx*vv.x,y+sy*vv.y,1)))
+  addpart('Embase_moteur_'+q,base,propulsion,metal,'Percage 19x19 M3 provisoire, a mesurer sur le moteur reel','equipment')
+  for hx in [-9.5,9.5]:
+   for hy in [-9.5,9.5]:
+    vv=mr.multVec(V(hx,hy));bx,by=x+sx*vv.x,y+sy*vv.y
+    addpart('Fixation_moteur_M3x8',Part.makeCylinder(1.5,8,V(bx,by,-2)).fuse(Part.makeCylinder(2.75,3,V(bx,by,-5))),joints,black,'M3x8 provisoire ; profondeur de vissage moteur a confirmer')
+  addpart('Stator_3115_'+q,Part.makeCylinder(15.5,15,V(x,y,8)),propulsion,(.61,.32,.12),'Stator nominal 31x15','equipment')
+  addpart('Arbre_M5_'+q,Part.makeCylinder(2.5,49,V(x,y,2)),propulsion,metal,'Arbre M5 simplifie, longueur indicative','equipment')
+  pp=props[1 if sx*sy>0 else -1].copy();pp.translate(V(x,y,43.5))
+  addpart('Helice_9x5x3_'+q,pp,propulsion,(.47,.49,.52),'Tripale diametre 228.6, pas geometrique 127 ; profil et moyeu indicatifs, pas un modele constructeur','equipment')
+
 D.recompute()
 # Detect unintended carbon/ carbon overlap in the assembled chassis.
 for i,(n,s) in enumerate(shapes):
@@ -165,9 +308,36 @@ for i,(n,s) in enumerate(shapes):
 assert not report['collisions_carbone_mm3'],report['collisions_carbone_mm3']
 report['volume_carbone_chassis_mm3']=round(sum(forms[n].Area*T*q for n,q in qty.items() if 'Coupon' not in n),3)
 report['volume_origine_meme_epaisseur_mm3']=round(sum(d['aire_originale_mm2']*T*d['quantite'] for d in report['formes'].values() if d['aire_originale_mm2'] is not None),3)
+# Clearances apply to the modeled envelopes, not to unspecified real equipment.
+report['interferences_carbone_equipements']=[]
+for n,shape in shapes:
+ for obj in hardware+equipment:
+  other=obj.Shape
+  if shape.BoundBox.intersect(other.BoundBox):
+   volume=shape.common(other).Volume
+   if volume>.01:report['interferences_carbone_equipements'].append([n,obj.Name,round(volume,4)])
+assert not report['interferences_carbone_equipements'],report['interferences_carbone_equipements']
+report['interferences_fixations']=[]
+for i,obj in enumerate(hardware):
+ for other in hardware[i+1:]+equipment:
+  if obj.Shape.BoundBox.intersect(other.Shape.BoundBox):
+   volume=obj.Shape.common(other.Shape).Volume
+   if volume>.01:report['interferences_fixations'].append([obj.Name,other.Name,round(volume,4)])
+assert not report['interferences_fixations'],report['interferences_fixations']
+cc=mp+mr.multVec(MOTOR_CENTER);centers=[(sx*cc.x,sy*cc.y) for sx in [-1,1] for sy in [-1,1]]
+report['ecart_disques_helices_mm']=round(min(math.dist(a,b) for i,a in enumerate(centers) for b in centers[i+1:])-228.6,3)
+report['interferences_disques_electronique']=[]
+for i,(x,y) in enumerate(centers):
+ sweep=Part.makeCylinder(114.3,26,V(x,y,30))
+ for obj in equipment:
+  if obj in elec.Group:
+   volume=sweep.common(obj.Shape).Volume
+   if volume>.01:report['interferences_disques_electronique'].append([i,obj.Name,round(volume,4)])
+assert report['ecart_disques_helices_mm']>0 and not report['interferences_disques_electronique']
+report['bras_pleins']=True;report['corniere_quantite']=24
 (OUT/'.build/contours.json').write_text(json.dumps(contours,indent=2),encoding='utf-8');(OUT/'.build/verification.json').write_text(json.dumps(report,indent=2,ensure_ascii=False),encoding='utf-8')
 # Separate planar layout at true scale (not a production nesting).
-layout=D.addObject('App::Part','Vue_decoupe');layout.Label='03 / PiÃ¨ces Ã  plat, une de chaque / hors assemblage'
+layout=D.addObject('App::Part','Vue_decoupe');layout.Label='03 / Pièces à plat, une de chaque / hors assemblage'
 for key,xy in zip(forms,[(0,0),(180,90),(180,20),(160,-70),(160,-130)]):
  o=D.addObject('App::Link','Aplat_'+key);layout.addObject(o);o.setLink(masters[key]);o.LinkPlacement=App.Placement(V(xy[0],xy[1],0),App.Rotation());o.Visibility=True
 layout.Visibility=False
@@ -177,9 +347,10 @@ D.recompute();D.saveAs(str(OUT/'chassis.FCStd'))
 E=App.newDocument('Export_Chassis_CNC');ex=[]
 for name,s in shapes:
  o=E.addObject('PartDesign::Feature',name);o.Shape=s;ex.append(o)
-for spacer in fast.Group:
+for spacer in hardware+equipment:
  o=E.addObject('PartDesign::Feature',spacer.Name);o.Shape=spacer.Shape;ex.append(o)
 Import.export(ex,str(OUT/'chassis.step'));App.closeDocument(E.Name);App.setActiveDocument(D.Name)
 if App.GuiUp:
  import FreeCADGui as Gui
- v=Gui.activeDocument().activeView();v.viewAxonometric();v.fitAll();D.save()
+ from pivy import coin
+ v=Gui.activeDocument().activeView();v.viewAxonometric();v.fitAll();v.getCameraNode().height.setValue(510);D.save()

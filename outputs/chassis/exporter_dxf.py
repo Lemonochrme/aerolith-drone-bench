@@ -16,9 +16,9 @@ for key in data:
  ms=d2.modelspace();assert all(e.dxftype()=='CIRCLE' or e.closed for e in ms)
 placements=[]
 for x in [85,235]:placements.append(['01_Platine_centrale',x,160])
-for y in [350,393,436,479]:placements.extend([['02_Bras_court',100,y],['03_Bras_long',315,y]])
-for x in [365,440]:
- for y in [65,140,215,290]:placements.append(['04_Socle_moteur',x,y])
+for y in [360,405,450,495]:placements.extend([['02_Bras_court',100,y],['03_Bras_long',315,y]])
+for x in [370,460]:
+ for y in [65,145,225,305]:placements.append(['04_Socle_moteur',x,y])
 placements.append(['05_Coupon_ajustement',458,455])
 d=setup();ms=d.modelspace();ms.add_lwpolyline([(0,0),(600,0),(600,600),(0,600)],close=True,dxfattribs={'layer':'PLAQUE_REFERENCE'})
 for i,(key,x,y) in enumerate(placements):
@@ -28,10 +28,39 @@ ms.add_text('CARBONE 4 mm / FRAISE 3 mm / CONTOURS NOMINAUX',dxfattribs={'layer'
 ms.add_text('REFERENCE 600 x 600 / HORS COMPENSATION, PONTS ET PARCOURS CAM',dxfattribs={'layer':'ANNOTATIONS_NE_PAS_USINER','height':4}).set_placement((25,550))
 d.saveas(O/'dxf/Planche_600x600_quantites_completes.dxf')
 (O/'.build/implantation.json').write_text(json.dumps(placements,indent=2),encoding='utf-8')
+# Drilling views for one aluminium angle, not a sheet-metal development.
+d=setup();d.layers.new('VUES_CORNIERE',dxfattribs={'color':8});d.layers.new('PERCAGE',dxfattribs={'color':7});ms=d.modelspace()
+ms.add_lwpolyline([(-9,0),(9,0),(9,15),(1,15),(-9,5)],close=True,dxfattribs={'layer':'VUES_CORNIERE'})
+ms.add_circle((4.5,6.5),1.65,dxfattribs={'layer':'PERCAGE'})
+ms.add_lwpolyline([(31,0),(49,0),(49,15),(31,15)],close=True,dxfattribs={'layer':'VUES_CORNIERE'});ms.add_circle((36.5,8),1.65,dxfattribs={'layer':'PERCAGE'})
+for txt,xy in [('SEMELLE / COIN 10x10',(-10,20)),('AILE VERTICALE',(30,20)),('CORNIERE 15x15x2 / L18 / x24 / TROUS D3.3',(-10,31)),('VUES DE PERCAGE, PAS UN DEVELOPPE',(-10,-7))]:ms.add_text(txt,dxfattribs={'layer':'ANNOTATIONS_NE_PAS_USINER','height':2}).set_placement(xy)
+d.saveas(O/'dxf/06_Corniere_percages.dxf')
 with (O/'composants.csv').open('w',encoding='utf-8-sig',newline='') as f:
- w=csv.writer(f,delimiter=';');w.writerow(['Pièce','Quantité','Matière','Épaisseur_mm','Notes'])
- for k,q in qty.items():w.writerow([k,q,'Carbone',4,'Coupon à tester avant les pièces finales' if 'Coupon' in k else 'Contour DXF nominal'])
- w.writerow(['Entretoise M3 L20',4,'Métal','','Centrale, dimensions à confirmer'])
- w.writerow(['Entretoise M3 L10',12,'Métal','','Trois par support moteur double'])
- w.writerow(['Visserie M3 de fermeture','','Acier','','Longueurs selon entretoises et écrous achetés ; non détaillée dans la CAO'])
-print('DXF exportés :',len(data)+1,'; pièces sur planche :',len(placements))
+ w=csv.writer(f,delimiter=';');w.writerow(['Piece','Quantite','Matiere','Dimension','Notes'])
+ for k,q in qty.items():w.writerow([k,q,'Carbone','4 mm','Coupon a tester avant les pieces finales' if 'Coupon' in k else 'Contour DXF nominal'])
+ for row in [
+ ['Corniere serree',24,'Aluminium','15x15x2 / L18','Coin de semelle 10x10, deux trous Ø3.3 ; plan 06'],
+ ['Entretoise racine M3',16,'Metal','L18 / Øext6','Entre semelle de corniere et platine superieure'],
+ ['Entretoise moteur M3',8,'Metal','L14 / Øext6','Sur les semelles moteur'],
+ ['Entretoise avant moteur M3',4,'Metal','L16 / Øext6','Fermeture avant des deux socles'],
+ ['Entretoise centrale M4',4,'Metal','L20 / Øext8','Fermeture structurelle, independante de la FC'],
+ ['Vis M3x35',16,'Acier','','Fermeture des racines'],
+ ['Vis M3x30',12,'Acier','','Fermeture des supports moteur'],
+ ['Vis M3x16',16,'Acier','','Serrage transversal des huit bras aux deux extremites'],
+ ['Vis M3x20',4,'Acier','','Fixation FC ; longueur a ajuster au montage souple reel'],
+ ['Vis M3x8',16,'Acier','','Moteurs ; longueur et profondeur de vissage a confirmer'],
+ ['Ecrou frein M3',48,'Acier','','Racines, supports, serrages et FC ; ne pas compter les filetages moteurs'],
+ ['Rondelle M3',112,'Acier','','Deux par fixation avec ecrou, une par vis moteur'],
+ ['Vis M4x40',4,'Acier','','Fermeture centrale'],['Ecrou frein M4',4,'Acier','','Fermeture centrale'],['Rondelle M4',8,'Acier','','Fermeture centrale'],
+ ['Support souple FC',4,'Silicone','L7 / passage M3','Encombrement provisoire'],
+ ['FC',1,'Electronique','Entraxe 30.5x30.5','Carte et composants generiques ; modele exact non fourni'],
+ ['ESC',4,'Electronique','50x18x8','Reference non choisie ; dimensions provisoires hors cables'],
+ ['Adhesif isolant ESC',4,'Isolant','50x18x2','Montage provisoire'],
+ ['GTSkytenRC 3115 640KV',4,'Moteur','Enveloppe Ø38 / corps33 / arbre M5','Pas de plan fabricant disponible ; verifier le percage 19x19 et le passage central Ø9'],
+ ['Helice tripale 9x5x3',4,'Helice','Ø228.6 / pas127','Deux de chaque sens ; forme simplifiee, pas une CAO constructeur'],
+ ['Ecrou helice M5',4,'Metal','','Avec le moteur si fourni ; type et longueur utile a confirmer'],
+ ['Rondelle helice M5',4,'Metal','','Selon fixation fournie avec le moteur'],
+ ['Batterie',1,'Batterie','148x44x52','Reference non choisie ; volume provisoire sans tension ni capacite imposee'],
+ ['Pad batterie',1,'Isolant','140x40x7','Provisoire'],['Sangle batterie',2,'Textile','Largeur20','Longueur selon batterie reelle']
+ ]:w.writerow(row)
+print('DXF : cinq pieces, planche et corniere ; composants mis a jour')
