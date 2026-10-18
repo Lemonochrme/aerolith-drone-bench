@@ -1,6 +1,6 @@
 # Châssis CNC
 
-Carbone de 4 mm. Fraise Ø3 mm. Révision R6. Dimensions en mm.
+Carbone de 4 mm. Fraise Ø3 mm. Révision R7. Dimensions en mm.
 
 [FreeCAD](chassis.FCStd) | [STEP](chassis.step) | [DXF](dxf/) | [Composants](composants.csv)
 
@@ -14,11 +14,11 @@ Les tenons mesurent 14 de long aux racines et 12 côté moteur. Les mortaises fo
 
 Les équerres et leurs vis transversales sont supprimées. Les tenons positionnent les bras entre les platines. Deux entretoises métalliques de 20 et deux vis M3 par racine ferment les platines centrales. Cinq entretoises de 16 et cinq vis M3 ferment chaque paire de socles moteurs, dont deux fixations supplémentaires près de l’arrivée des bras.
 
-Les socles moteurs ont un contour effilé avec des raccords de rayon 8 de 57,9 × 58, avec les mêmes axes moteurs et mortaises. La distance minimale entre un perçage ou une mortaise et le bord est de 3,77.
+Les socles moteurs mesurent 58 × 62. Leur contour est symétrique et centré sur l’axe moteur, avec des raccords de rayon 8. Les axes moteurs et les mortaises sont conservés. La fixation avant est rapprochée de 6. La distance minimale entre un perçage ou une mortaise et le bord est de 3,39.
 
 Espacement intérieur des platines centrales : 20. Espacement intérieur des supports moteurs : 16. Entretoises et visserie détaillées dans le CSV. Les vis et écrous sont simplifiés dans la CAO ; les rondelles sont comptées dans le CSV.
 
-Les platines centrales mesurent 120 × 250, avec un contour arrondi et les seuls perçages de fixation utilisés. Les sangles de batterie, axes moteurs, entraxes et bras restent identiques à la révision R5. Le volume des pièces carbone diminue de 4,8 %.
+Les platines centrales mesurent 120 × 250, avec un contour arrondi et les seuls perçages de fixation utilisés. Les sangles de batterie, axes moteurs, entraxes et bras restent identiques à la révision R5.
 
 ## Pièces carbone
 
@@ -27,7 +27,7 @@ Les platines centrales mesurent 120 × 250, avec un contour arrondi et les seuls
 | Platine centrale | 2 | 120 × 250 × 4 |
 | Bras court | 4 | 160 × 28 × 4 |
 | Bras long | 4 | 190 × 28 × 4 |
-| Socle moteur | 8 | 57,9 × 58 × 4 |
+| Socle moteur | 8 | 58 × 62 × 4 |
 | Coupon d'ajustement | 1 | 84 × 32 × 4 |
 
 ## Équipements
@@ -40,7 +40,7 @@ Les quatre ESC sont représentés par des cartes de 50 × 18 × 8, sur isolants 
 
 Les quatre moteurs portent la référence demandée GTSkytenRC 3115 640KV. Leur modèle est simplifié : corps Ø38 × 33 et arbre M5. Aucun plan constructeur vérifié n'a été trouvé. Le perçage 19 × 19 M3, le dégagement central Ø9 et les dimensions extérieures doivent être mesurés sur les moteurs réels avant fabrication.
 
-Le centre des moteurs est décalé de 7 sur chaque support pour dégager le perçage moteur des mortaises. Les hélices sont des tripales de diamètre 228,6 et de pas géométrique 127, avec deux sens de rotation de chaque. Leur profil est une représentation, pas une CAO constructeur.
+Le pourtour des supports est centré sur l’axe moteur. Les mortaises restent décalées pour dégager le perçage moteur. Les hélices sont des tripales de diamètre 228,6 et de pas géométrique 127, avec deux sens de rotation de chaque. Leur profil est une représentation, pas une CAO constructeur.
 
 ## Découpe et contrôles
 

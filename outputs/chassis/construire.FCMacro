@@ -110,7 +110,7 @@ short=arm();long=arm(True)
 # Motor support: smooth outline, retain mounting centers and shaft clearance.
 MC=V(2.563971143,-2.313539946)
 MOTOR_CENTER=MC+V(0,-7)
-mpoints=[(MC.x+x,MC.y+y) for x,y in [(-13,-29),(13,-29),(27,-16),(29,-4),(27,14),(10,29),(-10,29),(-27,14),(-29,-4),(-27,-16)]]
+mpoints=[(MOTOR_CENTER.x+x,MOTOR_CENTER.y+y) for x,y in [(-15,-31),(15,-31),(27,-19),(29,-5),(29,5),(27,19),(15,31),(-15,31),(-27,19),(-29,5),(-29,-5),(-27,-19)]]
 mholes=[circle(MOTOR_CENTER.x,MOTOR_CENTER.y,4.5)]
 # Provisional GTSkytenRC bolt pattern, must be checked on the actual motor.
 for x in [-9.5,9.5]:
@@ -119,9 +119,11 @@ for x,y,a in [(-14.184693509,-8.329579633,77.198102),(-9.75307754,11.173260666,7
 motorfeet=[]
 for x,y,a,side in [(-11.968885524,1.421840517,77.198102,1),(17.136843509,1.268477753,102.198102,-1)]:
  v=rot(V(4.5,side*8.5),a);motorfeet.append((x+v.x,y+v.y))
-motorfeet += [(MC.x,MC.y+23),(MC.x-23.5,MC.y-4),(MC.x+23.5,MC.y-4)]
+motorfeet += [(MC.x,MC.y+17),(MC.x-23.5,MC.y-4),(MC.x+23.5,MC.y-4)]
 for x,y in motorfeet:mholes.append(circle(x,y,1.65))
-motor=face(rounded(mpoints,8),mholes)
+motor_outer=rounded(mpoints,8)
+assert (Part.Face(motor_outer).CenterOfMass-MOTOR_CENTER).Length<1e-6
+motor=face(motor_outer,mholes)
 # Fit coupon: alternative widths for actual sheet and spindle runout.
 couponholes=[mortise(-25+i*12,0,14.08,[4.0,4.025,4.05,4.075,4.1,4.15][i],90) for i in range(6)]
 coupon=face(rounded([(-37,-16),(47,-16),(47,16),(-37,16)],4),couponholes)
@@ -130,7 +132,7 @@ forms={'01_Platine_centrale':base,'02_Bras_court':short,'03_Bras_long':long,'04_
 # Native FreeCAD project, separated from the calibration bench.
 import Import
 (OUT/'dxf').mkdir(exist_ok=True);(OUT/'.build').mkdir(exist_ok=True)
-D=App.newDocument('Aerolith_Chassis_CNC_R6');D.Label='Aerolith / Châssis CNC R6 / carbone 4 mm / fraise 3 mm'
+D=App.newDocument('Aerolith_Chassis_CNC_R7');D.Label='Aerolith / Châssis CNC R7 / carbone 4 mm / fraise 3 mm'
 settings=D.addObject('Spreadsheet::Sheet','Parametres');settings.Label='00 / Références de fabrication ; reconstruction par macro'
 for c,val in {'A1':'PARAMÈTRE / référence','B1':'VALEUR','A2':'Épaisseur carbone (mm)','B2':str(T),'A3':'Fraise (mm)','B3':str(TOOL),'A4':'Jeu nominal rainure (mm)','B4':str(CLEAR),'A5':'Rainure (mm)','B5':str(T+CLEAR),'A6':'Entretoises centrales (mm)','B6':'20','A7':'Entretoises moteur (mm)','B7':'16','A10':'FC / entraxe suppose','B10':'30.5 x 30.5','A11':'ESC / enveloppe provisoire','B11':'50 x 18 x 8 mm','A12':'Batterie / enveloppe provisoire','B12':'148 x 44 x 52 mm','A13':'Moteurs','B13':'GTSkytenRC 3115 640KV / dimensions a confirmer','A14':'Helices','B14':'9x5x3 / diametre 228.6 / pas 127','A8':'Note','B8':'Modifier la macro et reconstruire pour changer les interfaces'}.items():settings.set(c,val)
 settings.setColumnWidth('A',320);settings.setColumnWidth('B',420);settings.setStyle('A1:B1','bold','add')
@@ -139,7 +141,7 @@ assembly=D.addObject('App::Part','Chassis');assembly.Label='02 / Châssis assemb
 masters={};links=[];shapes=[]
 qty={'01_Platine_centrale':2,'02_Bras_court':4,'03_Bras_long':4,'04_Socle_moteur':8,'05_Coupon_ajustement':1}
 colors={'01_Platine_centrale':(.13,.18,.23),'02_Bras_court':(.19,.25,.30),'03_Bras_long':(.19,.25,.30),'04_Socle_moteur':(.17,.22,.27),'05_Coupon_ajustement':(.3,.5,.65)}
-report={'version':'R6','epaisseur_mm':T,'fraise_mm':TOOL,'jeu_rainure_mm':CLEAR,'gcode_genere':False,'formes':{},'collisions_carbone_mm3':[]}
+report={'version':'R7','epaisseur_mm':T,'fraise_mm':TOOL,'jeu_rainure_mm':CLEAR,'gcode_genere':False,'formes':{},'collisions_carbone_mm3':[]}
 # Export analytic 2D contours as closed polylines with exact circular arc bulges.
 def contour_data(f):
  data=[]

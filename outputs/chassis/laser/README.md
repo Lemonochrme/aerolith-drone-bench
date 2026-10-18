@@ -1,6 +1,6 @@
 # Prototype MDF 4 mm
 
-Châssis R6. Platines centrales de 120 × 250.
+Châssis R7. Platines centrales de 120 × 250. Socles de 58 × 62, centrés sur les axes moteurs.
 
 [Planche 600 × 600](MDF4_600x600.dxf) | [Coupon seul](Coupon_MDF4.dxf)
 
