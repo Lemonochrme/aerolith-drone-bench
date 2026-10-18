@@ -1,18 +1,18 @@
 # Châssis CNC
 
-Carbone de 4 mm. Fraise Ø3 mm. Révision R2. Dimensions en mm.
+Carbone de 4 mm. Fraise Ø3 mm. Révision R3. Dimensions en mm.
 
 [FreeCAD](chassis.FCStd) | [STEP](chassis.step) | [DXF](dxf/) | [Composants](composants.csv)
 
 ## Liaisons
 
-Les bras sont pleins, avec seulement deux trous Ø3,3 pour leur serrage transversal.
+Les bras sont pleins, sans trou d’allègement ni perçage transversal.
 
 Les tenons mesurent 14 de long aux racines et 12 côté moteur. Les mortaises font respectivement 14,08 × 4,05 et 12,08 × 4,05, avec des dégagements de fraise localisés aux coins. Le jeu nominal total en épaisseur est de 0,05.
 
-Chaque racine reçoit deux équerres métalliques et chaque extrémité de bras côté moteur en reçoit une. Les vis M3 traversent les bras. Les vis verticales serrent les platines et les équerres autour d'entretoises métalliques. Le maintien ne repose donc pas uniquement sur l'ajustement des tenons.
+Les équerres et leurs vis transversales sont supprimées. Les tenons positionnent les bras entre les platines. Deux entretoises métalliques de 20 et deux vis M3 par racine ferment les platines centrales. Trois entretoises de 16 et trois vis M3 ferment chaque paire de socles moteurs.
 
-Les 24 équerres sont faites en cornière aluminium 15 × 15 × 2, coupée à 18. Un coin de semelle est recoupé à 10 × 10 pour dégager les équerres voisines et les ESC. Les deux perçages Ø3,3 sont cotés dans le [plan 06](dxf/06_Corniere_percages.dxf).
+Les socles moteurs ont un contour effilé et arrondi de 57,9 × 58, avec les mêmes axes moteurs et mortaises. La distance minimale entre un perçage ou une mortaise et le bord est de 3,66.
 
 Espacement intérieur des platines centrales : 20. Espacement intérieur des supports moteurs : 16. Entretoises et visserie détaillées dans le CSV. Les vis et écrous sont simplifiés dans la CAO ; les rondelles sont comptées dans le CSV.
 
@@ -23,7 +23,7 @@ Espacement intérieur des platines centrales : 20. Espacement intérieur des sup
 | Platine centrale | 2 | 128 × 270 × 4 |
 | Bras court | 4 | 160 × 28 × 4 |
 | Bras long | 4 | 190 × 28 × 4 |
-| Socle moteur | 8 | 70 × 68 × 4 |
+| Socle moteur | 8 | 57,9 × 58 × 4 |
 | Coupon d'ajustement | 1 | 84 × 32 × 4 |
 
 ## Équipements
@@ -40,7 +40,7 @@ Le centre des moteurs est décalé de 7 sur chaque support pour dégager le per�
 
 ## Découpe et contrôles
 
-Les DXF contiennent les contours nominaux, sans compensation d'outil. La planche 600 × 600 contient les 18 pièces carbone et le coupon. Le plan 06 est un guide de perçage des cornières, pas un développé de tôle.
+Les DXF contiennent les contours nominaux, sans compensation d'outil. La planche 600 × 600 contient les 18 pièces carbone et le coupon.
 
 Le coupon reprend la forme des mortaises. De gauche à droite, leurs largeurs sont 4,000 / 4,025 / 4,050 / 4,075 / 4,100 / 4,150. Mesurer la plaque et tester le coupon avant la découpe finale. Le jeu de 0,05 n'est pas une tolérance d'usinage garantie.
 
