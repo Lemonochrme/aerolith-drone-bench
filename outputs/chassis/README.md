@@ -1,12 +1,12 @@
 # Châssis CNC
 
-Carbone de 4 mm. Fraise Ø3 mm. Révision R3. Dimensions en mm.
+Carbone de 4 mm. Fraise Ø3 mm. Révision R4. Dimensions en mm.
 
 [FreeCAD](chassis.FCStd) | [STEP](chassis.step) | [DXF](dxf/) | [Composants](composants.csv)
 
 ## Liaisons
 
-Les bras sont pleins, sans trou d’allègement ni perçage transversal.
+Les bras sont pleins, sans trou d’allègement ni perçage transversal. Les encoches sur les transitions libres sont supprimées et remplacées par des raccords tangents de rayon 8. Les dégagements de fraise restent limités aux épaulements des tenons.
 
 Les tenons mesurent 14 de long aux racines et 12 côté moteur. Les mortaises font respectivement 14,08 × 4,05 et 12,08 × 4,05, avec des dégagements de fraise localisés aux coins. Le jeu nominal total en épaisseur est de 0,05.
 

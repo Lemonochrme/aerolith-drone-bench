@@ -6,14 +6,14 @@ OUT=Path(__file__).resolve().parent
 src=json.loads((OUT/'sources/contours.json').read_text(encoding='utf-8'))
 def rot(p,a):
  a=math.radians(a);return V(p.x*math.cos(a)-p.y*math.sin(a),p.x*math.sin(a)+p.y*math.cos(a),p.z)
-def rounded(points,r=4,variable=False):
+def rounded(points,r=4,variable=False,radii=None):
  ps=[V(x,y,0) for x,y in points];corners=[]
  # Counterclockwise winding is not necessary: signed turn defines arc normal.
  for i,p in enumerate(ps):
   prev,nxt=ps[i-1],ps[(i+1)%len(ps)];u=p-prev;u.normalize();v=nxt-p;v.normalize()
   angle=math.atan2(u.cross(v).z,u.dot(v))
   if abs(angle)<1e-7:corners.append((p,p,None));continue
-  radius=(0 if angle<0 else 1.0) if variable else r
+  radius=radii[i] if radii is not None else (1.6 if angle<0 else 1.0) if variable else r
   if radius<1e-8:corners.append((p,p,None));continue
   trim=radius*math.tan(abs(angle)/2)
   cap=min((p-prev).Length,(nxt-p).Length)*.45
@@ -87,13 +87,18 @@ def arm(long=False):
  shift=15 if long else 0;root=-67.5-shift;ends=[48.5+shift,68.5+shift];xmin=-80-shift;xmax=80+shift
  low=[(xmin,-10),(root-7,-10),(root-7,-10-T),(root+7,-10-T),(root+7,-10),(-48-shift,-10),(-43-shift,-13.5),(9+shift,-9),(18+shift,-8),(ends[0]-6,-8),(ends[0]-6,-8-T),(ends[0]+6,-8-T),(ends[0]+6,-8),(ends[1]-6,-8),(ends[1]-6,-8-T),(ends[1]+6,-8-T),(ends[1]+6,-8),(xmax,-8)]
  ps=low+[(x,-y) for x,y in reversed(low)]
- f=Part.Face(rounded(ps,variable=True))
- # Local cutter relief removes material at shoulders; no enlarged mortise.
+ # Blend the free span without cutting semicircular notches into its edges.
+ # Cutter reliefs belong only to the functional tenon shoulders.
+ radii=[];reliefs=[]
  for i,(x,y) in enumerate(ps):
-  p=V(x,y);u=p-V(*ps[i-1]);v=V(*ps[(i+1)%len(ps)])-p
-  if u.cross(v).z<-1e-7:f=f.cut(Part.Face(circle(x,y,TOOL/2+.1)))
- outer=f.removeSplitter().Faces[0].OuterWire
- return Part.Face(outer)
+  u=V(x,y)-V(*ps[i-1]);v=V(*ps[(i+1)%len(ps)])-V(x,y)
+  concave=u.cross(v).z<-1e-7
+  tenon=any(abs(x-c)<7.01 for c in [root]+ends)
+  radii.append((0 if tenon else 8.0) if concave else 1.0)
+  if concave and tenon:reliefs.append((x,y))
+ f=Part.Face(rounded(ps,radii=radii))
+ for x,y in reliefs:f=f.cut(Part.Face(circle(x,y,TOOL/2+.1)))
+ return Part.Face(f.removeSplitter().Faces[0].OuterWire)
 short=arm();long=arm(True)
 # Motor support: smooth outline, retain mounting centers and shaft clearance.
 MC=V(2.563971143,-2.313539946)
@@ -117,7 +122,7 @@ forms={'01_Platine_centrale':base,'02_Bras_court':short,'03_Bras_long':long,'04_
 # Native FreeCAD project, separated from the calibration bench.
 import Import
 (OUT/'dxf').mkdir(exist_ok=True);(OUT/'.build').mkdir(exist_ok=True)
-D=App.newDocument('Aerolith_Chassis_CNC_R3');D.Label='Aerolith / Châssis CNC R3 / carbone 4 mm / fraise 3 mm'
+D=App.newDocument('Aerolith_Chassis_CNC_R4');D.Label='Aerolith / Châssis CNC R4 / carbone 4 mm / fraise 3 mm'
 settings=D.addObject('Spreadsheet::Sheet','Parametres');settings.Label='00 / Références de fabrication ; reconstruction par macro'
 for c,val in {'A1':'PARAMÈTRE / référence','B1':'VALEUR','A2':'Épaisseur carbone (mm)','B2':str(T),'A3':'Fraise (mm)','B3':str(TOOL),'A4':'Jeu nominal rainure (mm)','B4':str(CLEAR),'A5':'Rainure (mm)','B5':str(T+CLEAR),'A6':'Entretoises centrales (mm)','B6':'20','A7':'Entretoises moteur (mm)','B7':'16','A10':'FC / entraxe suppose','B10':'30.5 x 30.5','A11':'ESC / enveloppe provisoire','B11':'50 x 18 x 8 mm','A12':'Batterie / enveloppe provisoire','B12':'148 x 44 x 52 mm','A13':'Moteurs','B13':'GTSkytenRC 3115 640KV / dimensions a confirmer','A14':'Helices','B14':'9x5x3 / diametre 228.6 / pas 127','A8':'Note','B8':'Modifier la macro et reconstruire pour changer les interfaces'}.items():settings.set(c,val)
 settings.setColumnWidth('A',320);settings.setColumnWidth('B',420);settings.setStyle('A1:B1','bold','add')
@@ -126,7 +131,7 @@ assembly=D.addObject('App::Part','Chassis');assembly.Label='02 / Châssis assemb
 masters={};links=[];shapes=[]
 qty={'01_Platine_centrale':2,'02_Bras_court':4,'03_Bras_long':4,'04_Socle_moteur':8,'05_Coupon_ajustement':1}
 colors={'01_Platine_centrale':(.13,.18,.23),'02_Bras_court':(.19,.25,.30),'03_Bras_long':(.19,.25,.30),'04_Socle_moteur':(.17,.22,.27),'05_Coupon_ajustement':(.3,.5,.65)}
-report={'version':'R3','epaisseur_mm':T,'fraise_mm':TOOL,'jeu_rainure_mm':CLEAR,'gcode_genere':False,'formes':{},'collisions_carbone_mm3':[]}
+report={'version':'R4','epaisseur_mm':T,'fraise_mm':TOOL,'jeu_rainure_mm':CLEAR,'gcode_genere':False,'formes':{},'collisions_carbone_mm3':[]}
 # Export analytic 2D contours as closed polylines with exact circular arc bulges.
 def contour_data(f):
  data=[]
