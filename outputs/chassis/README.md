@@ -1,6 +1,6 @@
 # Châssis CNC
 
-Carbone de 4 mm. Fraise Ø3 mm. Révision R7. Dimensions en mm.
+Carbone de 4 mm. Fraise Ø3 mm. Révision R8. Dimensions en mm.
 
 [FreeCAD](chassis.FCStd) | [STEP](chassis.step) | [DXF](dxf/) | [Composants](composants.csv)
 
@@ -12,9 +12,9 @@ Les bras sont pleins, sans trou d’allègement ni perçage transversal. Les enc
 
 Les tenons mesurent 14 de long aux racines et 12 côté moteur. Les mortaises font respectivement 14,08 × 4,05 et 12,08 × 4,05, avec des dégagements de fraise localisés aux coins. Le jeu nominal total en épaisseur est de 0,05.
 
-Les équerres et leurs vis transversales sont supprimées. Les tenons positionnent les bras entre les platines. Deux entretoises métalliques de 20 et deux vis M3 par racine ferment les platines centrales. Cinq entretoises de 16 et cinq vis M3 ferment chaque paire de socles moteurs, dont deux fixations supplémentaires près de l’arrivée des bras.
+Les équerres et leurs vis transversales sont supprimées. Les tenons positionnent les bras entre les platines. Deux entretoises métalliques de 20 et deux vis M3 par racine ferment les platines centrales. Quatre entretoises de 16 et quatre vis M3 ferment chaque paire de socles moteurs, avec deux fixations de chaque côté du moteur.
 
-Les socles moteurs mesurent 58 × 62. Leur contour est symétrique et centré sur l’axe moteur, avec des raccords de rayon 8. Les axes moteurs et les mortaises sont conservés. La fixation avant est rapprochée de 6. La distance minimale entre un perçage ou une mortaise et le bord est de 3,39.
+Les socles moteurs mesurent 58 × 62. Leur contour est symétrique et centré sur l’axe moteur, avec des raccords de rayon 8. Les axes moteurs et les mortaises sont conservés. La distance minimale entre un perçage ou une mortaise et le bord est de 3,89.
 
 Espacement intérieur des platines centrales : 20. Espacement intérieur des supports moteurs : 16. Entretoises et visserie détaillées dans le CSV. Les vis et écrous sont simplifiés dans la CAO ; les rondelles sont comptées dans le CSV.
 
