@@ -4,6 +4,8 @@ Carbone de 4 mm. Fraise Ø3 mm. Révision R5. Dimensions en mm.
 
 [FreeCAD](chassis.FCStd) | [STEP](chassis.step) | [DXF](dxf/) | [Composants](composants.csv)
 
+[Prototype MDF 4 mm : fichiers pour découpe laser](laser/README.md)
+
 ## Liaisons
 
 Les bras sont pleins, sans trou d’allègement ni perçage transversal. Les encoches sur les transitions libres sont supprimées et remplacées par des raccords tangents de rayon 8. Les dégagements de fraise restent limités aux épaulements des tenons.

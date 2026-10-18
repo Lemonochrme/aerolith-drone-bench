@@ -2,6 +2,7 @@ import FreeCAD as App, Part, math, json
 from pathlib import Path
 V=App.Vector
 T=4.0; TOOL=3.0; CLEAR=.05
+LASER=globals().get("LASER",False)
 OUT=Path(__file__).resolve().parent
 src=json.loads((OUT/'sources/contours.json').read_text(encoding='utf-8'))
 def rot(p,a):
@@ -36,6 +37,9 @@ def capsule(cx,cy,length,width,angle=0):
  w=Part.Wire(es);w.rotate(V(),V(0,0,1),angle);w.translate(V(cx,cy));return w
 MORTISES={}
 def mortise(cx,cy,length,width,angle=0):
+ if LASER:
+  w=Part.makePolygon([V(-length/2,-width/2),V(length/2,-width/2),V(length/2,width/2),V(-length/2,width/2),V(-length/2,-width/2)])
+  w.rotate(V(),V(0,0,1),angle);w.translate(V(cx,cy));return Part.Wire(w.Edges)
  key=(length,width)
  if key not in MORTISES:
   r=TOOL/2+.1
@@ -97,7 +101,7 @@ def arm(long=False):
   radii.append((0 if tenon else 8.0) if concave else 1.0)
   if concave and tenon:reliefs.append((x,y))
  f=Part.Face(rounded(ps,radii=radii))
- for x,y in reliefs:f=f.cut(Part.Face(circle(x,y,TOOL/2+.1)))
+ for x,y in ([] if LASER else reliefs):f=f.cut(Part.Face(circle(x,y,TOOL/2+.1)))
  return Part.Face(f.removeSplitter().Faces[0].OuterWire)
 short=arm();long=arm(True)
 # Motor support: smooth outline, retain mounting centers and shaft clearance.
