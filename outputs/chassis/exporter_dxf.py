@@ -33,14 +33,14 @@ with (O/'composants.csv').open('w',encoding='utf-8-sig',newline='') as f:
  for k,q in qty.items():w.writerow([k,q,'Carbone','4 mm','Coupon a tester avant les pieces finales' if 'Coupon' in k else 'Contour DXF nominal'])
  for row in [
  ['Entretoise racine M3',16,'Metal','L20 / Øext6','Entre les deux platines centrales'],
- ['Entretoise moteur M3',12,'Metal','L16 / Øext6','Trois par paire de socles'],
+ ['Entretoise moteur M3',20,'Metal','L16 / Øext6','Cinq par paire de socles'],
  ['Entretoise centrale M4',4,'Metal','L20 / Øext8','Fermeture structurelle, independante de la FC'],
  ['Vis M3x35',16,'Acier','','Fermeture des racines'],
- ['Vis M3x30',12,'Acier','','Fermeture des supports moteur'],
+ ['Vis M3x30',20,'Acier','','Fermeture des supports moteur'],
  ['Vis M3x20',4,'Acier','','Fixation FC ; longueur a ajuster au montage souple reel'],
  ['Vis M3x8',16,'Acier','','Moteurs ; longueur et profondeur de vissage a confirmer'],
- ['Ecrou frein M3',32,'Acier','','Racines, supports et FC ; ne pas compter les filetages moteurs'],
- ['Rondelle M3',80,'Acier','','Deux par fixation avec ecrou, une par vis moteur'],
+ ['Ecrou frein M3',40,'Acier','','Racines, supports et FC ; ne pas compter les filetages moteurs'],
+ ['Rondelle M3',96,'Acier','','Deux par fixation avec ecrou, une par vis moteur'],
  ['Vis M4x40',4,'Acier','','Fermeture centrale'],['Ecrou frein M4',4,'Acier','','Fermeture centrale'],['Rondelle M4',8,'Acier','','Fermeture centrale'],
  ['Support souple FC',4,'Silicone','L7 / passage M3','Encombrement provisoire'],
  ['FC',1,'Electronique','Entraxe 30.5x30.5','Carte et composants generiques ; modele exact non fourni'],
