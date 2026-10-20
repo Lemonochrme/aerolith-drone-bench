@@ -1,4 +1,4 @@
-"""Export du prototype MDF 4 mm, sans dégagements de fraise."""
+"""Export du prototype MDF, épaisseur nominale 3 mm, sans dégagements de fraise."""
 from pathlib import Path
 import argparse, ast, json, subprocess, sys
 
@@ -9,17 +9,23 @@ def placements():
     for y in (360, 405, 450, 495):
         result += [('02_Bras_court', 100, y), ('03_Bras_long', 315, y)]
     result += [('04_Socle_moteur', x, y) for x in (370, 460) for y in (65, 145, 225, 305)]
-    return result + [('05_Coupon_ajustement', 458, 455)]
+    return result
 
-def geometry():
+def geometry(thickness, clearance):
     import FreeCAD as App
     import Part
     source = (O / 'construire.FCMacro').read_text(encoding='utf-8')
-    ns = {'__file__': str(O / 'construire.FCMacro'), 'LASER': True}
+    ns = {'__file__': str(O / 'construire.FCMacro'), 'LASER': True,
+          'THICKNESS': thickness, 'SLOT_CLEARANCE': clearance}
     exec(source.split('# Native FreeCAD project')[0], ns)
     node = next(n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef) and n.name == 'contour_data')
     exec(ast.get_source_segment(source, node), ns)
     forms = ns['forms']
+    # Separate male witness: its 14 mm tenon projects by the sheet thickness.
+    points = [(-15,-10),(15,-10),(15,10),(7,10),(7,10+thickness),
+              (-7,10+thickness),(-7,10),(-15,10)]
+    forms['06_Temoin_ajustement'] = Part.Face(Part.makePolygon(
+        [App.Vector(x,y,0) for x,y in points + [points[0]]]))
     assert all(f.isValid() and len(f.Faces) == 1 and all(w.isClosed() for w in f.Wires) for f in forms.values())
     assert all(len(forms[n].Wires) == 1 for n in ('02_Bras_court', '03_Bras_long'))
     sheet = []
@@ -31,13 +37,24 @@ def geometry():
     gap = min(a.distToShape(b)[0] for i, a in enumerate(sheet) for b in sheet[i + 1:])
     assert gap > 6
     data = {n: ns['contour_data'](f) for n, f in forms.items()}
+    for n, f in forms.items():
+        for contour, wire in zip(data[n], f.Wires):
+            contour['outer'] = wire.isSame(f.OuterWire)
     (O / '.build').mkdir(exist_ok=True)
     (O / '.build/laser-contours.json').write_text(json.dumps(data), encoding='utf-8')
-    print(f'19 pieces / espacement minimum {gap:.3f} mm / contours valides')
+    report = {'epaisseur_mm': thickness, 'jeu_total_mm': clearance,
+              'rainure_mm': thickness + clearance,
+              'profondeur_tenons_mm': thickness,
+              'pieces_chassis': len(sheet), 'espacement_min_mm': gap,
+              'formes': {n: {'aire_mm2': f.Area, 'contours': len(f.Wires)}
+                         for n, f in forms.items()}}
+    (O / '.build/laser-parametres.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
+    print(f'{len(sheet)} pieces / epaisseur {thickness:g} / rainures {thickness+clearance:g} / espacement {gap:.3f} mm')
 
-def export(freecad_python):
+def export(freecad_python, thickness, clearance):
     import ezdxf
-    subprocess.run([freecad_python, str(Path(__file__).resolve()), '--geometry'], check=True)
+    subprocess.run([freecad_python, str(Path(__file__).resolve()), '--geometry',
+                    '--thickness', str(thickness), '--slot-clearance', str(clearance)], check=True)
     data = json.loads((O / '.build/laser-contours.json').read_text())
     folder = O / 'laser'
     folder.mkdir(exist_ok=True)
@@ -50,7 +67,7 @@ def export(freecad_python):
         m = d.modelspace()
         expected = 0
         for key, x, y in items:
-            for c in data[key]:
+            for c in sorted(data[key], key=lambda c: c['outer']):
                 attrs = {'layer': 'DECOUPE'}
                 if c['type'] == 'CIRCLE':
                     m.add_circle((c['center'][0] + x, c['center'][1] + y), c['radius'], dxfattribs=attrs)
@@ -75,15 +92,21 @@ def export(freecad_python):
             signatures.add(sig)
         print(f'{name} : {expected} contours fermes, sans texte ni cadre')
 
-    write('MDF4_600x600.dxf', placements())
-    write('Coupon_MDF4.dxf', [('05_Coupon_ajustement', 42, 21)])
+    tag = f'{thickness:g}'.replace('.', 'p')
+    write(f'MDF{tag}_600x600.dxf', placements())
+    write(f'Coupon_MDF{tag}.dxf', [('05_Coupon_ajustement', 42, 21),
+                                 ('06_Temoin_ajustement', 111, 21)])
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--geometry', action='store_true', help=argparse.SUPPRESS)
     parser.add_argument('--freecad-python', default=r'C:\Program Files\FreeCAD 1.1\bin\python.exe')
+    parser.add_argument('--thickness', type=float, default=3.0, help='Epaisseur mesuree du MDF, en mm')
+    parser.add_argument('--slot-clearance', type=float, default=.05, help='Jeu total des mortaises, en mm')
     args = parser.parse_args()
+    if not (1 <= args.thickness <= 6 and 0 <= args.slot_clearance <= .3):
+        parser.error('Epaisseur attendue entre 1 et 6 mm et jeu entre 0 et 0.3 mm')
     if args.geometry:
-        geometry()
+        geometry(args.thickness, args.slot_clearance)
     else:
-        export(args.freecad_python)
+        export(args.freecad_python, args.thickness, args.slot_clearance)

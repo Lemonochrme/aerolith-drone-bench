@@ -1,19 +1,37 @@
-# Prototype MDF 4 mm
+# Découpe MDF 3 mm
 
-Châssis R8. Platines centrales de 120 × 250. Socles de 58 × 62, centrés sur les axes moteurs, avec quatre fixations par support.
+[Cadre complet, planche 600 × 600](MDF3_600x600.dxf) | [Coupon et témoin](Coupon_MDF3.dxf)
 
-[Planche 600 × 600](MDF4_600x600.dxf) | [Coupon seul](Coupon_MDF4.dxf)
+Ces fichiers remplacent la version MDF 4 mm. Ils sont destinés à une plaque de 3,00 mm nominal. Le projet FreeCAD carbone de 4 mm reste séparé.
 
-DXF R2010, en mm, échelle 1:1. Un seul calque DECOUPE. Aucun texte, cadre, doublon ou tracé de gravure.
+DXF R2010, unités mm, échelle 1:1. Un seul calque DECOUPE, sans texte, cadre ni gravure. Contours intérieurs écrits avant le pourtour de chaque pièce ; conserver cette priorité dans le logiciel laser. Ne pas redimensionner à l'importation.
 
-La planche contient 2 platines centrales, 4 bras courts, 4 bras longs, 8 socles moteurs et 1 coupon. Le coupon séparé permet un essai avant la planche complète. Espacement minimal entre pièces : 11 mm.
+La planche contient les 18 pièces du cadre : 2 platines centrales, 4 bras courts, 4 bras longs et 8 socles moteurs. Espacement minimal entre pièces : 18 mm. Les essais sont dans le DXF séparé.
 
-Les dégagements de fraise sont retirés des bras et des mortaises. Les six passages de 8 × 4 servent aux quatre colliers de maintien des ESC. Les emboîtements gardent les cotes nominales du modèle : tenons de 14 et 12, mortaises de 14,08 × 4,05 et 12,08 × 4,05.
+## Emboîtements
 
-Les six mortaises du coupon font, de gauche à droite : 4,000 / 4,025 / 4,050 / 4,075 / 4,100 / 4,150 de large. Tester avec une chute et un tenon de bras dans le MDF réel. Le fichier complet utilise 4,050.
+- Épaisseur et profondeur des tenons : 3,00 mm.
+- Mortaises centrales : 14,08 × 3,05 mm, pour des tenons de longueur 14 mm.
+- Mortaises moteur : 12,08 × 3,05 mm, pour des tenons de longueur 12 mm.
+- Jeu nominal total en épaisseur : 0,05 mm, avant effet du trait laser.
+- Aucun dégagement de fraise sur les bras ou les mortaises.
 
-Les contours ne sont pas compensés. Régler la compensation de largeur de coupe dans le logiciel de la machine après mesure sur une chute. Découper les contours intérieurs avant les contours extérieurs. Puissance, vitesse et passes dépendent de la machine et du MDF.
+Les entretoises restent de 20 mm au centre et 16 mm aux moteurs. Les empilages extérieurs passent respectivement à 26 et 22 mm. Les quatre vis de fermeture M3×30 par support et les vis M3×35 aux racines gardent une longueur suffisante. Utiliser des rondelles, sans écraser le MDF.
 
-Ce prototype MDF sert à vérifier l'assemblage. Sa résistance pour un vol ou un essai motorisé n'est pas validée. Le fichier ne vaut pas validation d'une découpe laser du carbone.
+Les axes moteurs, entraxes, profils pleins des bras, supports centrés et quatre fixations par support sont conservés. Le perçage moteur 19 × 19 M3 reste celui du modèle provisoire. Le vérifier sur les moteurs réels. Une vis moteur traverse désormais 1 mm de matière en moins : sa pénétration augmente de 1 mm à longueur identique.
 
-Reconstruction : exécuter exporter_laser.py avec Python et ezdxf. Le script appelle le Python fourni par FreeCAD ; son chemin peut être passé avec --freecad-python.
+## Essai avant la planche
+
+Le coupon et son témoin mâle tiennent dans une chute de 130 × 45 mm. Les six mortaises, de gauche à droite, font 3,000 / 3,025 / 3,050 / 3,075 / 3,100 / 3,150 mm. Le témoin possède un tenon de 14 mm de long et 3 mm de profondeur ; son épaisseur est celle du MDF réel. Son corps fait 30 mm de large pour contrôler l'échelle et le trait de coupe.
+
+Le cadre utilise la troisième largeur, 3,050 mm. Découper d'abord ce coupon dans la même plaque, avec les mêmes réglages que le cadre. Le témoin doit entrer dans cette troisième mortaise sans forcer et sans jeu excessif. Si ce n'est pas le cas, corriger la compensation du trait laser ou adapter les cotes avant de découper la planche.
+
+Les fichiers ne contiennent aucune compensation de trait laser. L'épaisseur réelle et le trait doivent être mesurés ; un jeu nominal de 0,05 mm n'est pas une précision de fabrication garantie. Puissance, vitesse et passes dépendent de la machine et du MDF.
+
+## Contrôles effectués
+
+Réimportation des deux DXF : 18 faces valides pour le cadre et 2 pour les essais. Vérification des 48 mortaises de largeur 3,05 mm. Assemblage 3D de 18 pièces de 3 mm avec 36 entretoises, sans chevauchement. Profondeur des tenons et engagement dans les deux platines vérifiés.
+
+Ces contrôles valident la géométrie d'assemblage. La résistance du MDF 3 mm pour un vol ou un essai motorisé n'est pas validée.
+
+Reconstruction : `python exporter_laser.py --thickness 3 --slot-clearance 0.05`. Le script utilise ezdxf et le Python de FreeCAD ; son chemin peut être passé avec `--freecad-python`.

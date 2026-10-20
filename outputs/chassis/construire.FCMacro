@@ -1,7 +1,8 @@
 import FreeCAD as App, Part, math, json
 from pathlib import Path
 V=App.Vector
-T=4.0; TOOL=3.0; CLEAR=.05
+T=float(globals().get("THICKNESS",4.0)); TOOL=3.0
+CLEAR=float(globals().get("SLOT_CLEARANCE",.05))
 LASER=globals().get("LASER",False)
 OUT=Path(__file__).resolve().parent
 src=json.loads((OUT/'sources/contours.json').read_text(encoding='utf-8'))
@@ -123,11 +124,13 @@ motor_outer=rounded(mpoints,8)
 assert (Part.Face(motor_outer).CenterOfMass-MOTOR_CENTER).Length<1e-6
 motor=face(motor_outer,mholes)
 # Fit coupon: alternative widths for actual sheet and spindle runout.
-couponholes=[mortise(-25+i*12,0,14.08,[4.0,4.025,4.05,4.075,4.1,4.15][i],90) for i in range(6)]
+couponholes=[mortise(-25+i*12,0,14.08,T+[0,.025,.05,.075,.1,.15][i],90) for i in range(6)]
 coupon=face(rounded([(-37,-16),(47,-16),(47,16),(-37,16)],4),couponholes)
 forms={'01_Platine_centrale':base,'02_Bras_court':short,'03_Bras_long':long,'04_Socle_moteur':motor,'05_Coupon_ajustement':coupon}
 
 # Native FreeCAD project, separated from the calibration bench.
+if LASER or abs(T-4.0)>1e-9:
+ raise RuntimeError('Le projet complet est celui du carbone 4 mm. Utiliser exporter_laser.py pour le prototype MDF.')
 import Import
 (OUT/'dxf').mkdir(exist_ok=True);(OUT/'.build').mkdir(exist_ok=True)
 D=App.newDocument('Aerolith_Chassis_CNC_R8');D.Label='Aerolith / Châssis CNC R8 / carbone 4 mm / fraise 3 mm'

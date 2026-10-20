@@ -4,7 +4,9 @@ Carbone de 4 mm. Fraise Ø3 mm. Révision R8. Dimensions en mm.
 
 [FreeCAD](chassis.FCStd) | [STEP](chassis.step) | [DXF](dxf/) | [Composants](composants.csv)
 
-[Prototype MDF 4 mm : fichiers pour découpe laser](laser/README.md)
+[Prototype MDF 3 mm : fichiers pour découpe laser](laser/README.md)
+
+Le FreeCAD et le STEP ci-dessus restent le projet carbone 4 mm. Pour le MDF 3 mm, utiliser uniquement les DXF du dossier laser.
 
 ## Liaisons
 
