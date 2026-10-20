@@ -1,6 +1,6 @@
 """Export du prototype MDF, épaisseur nominale 3 mm, sans dégagements de fraise."""
 from pathlib import Path
-import argparse, ast, json, subprocess, sys
+import argparse, ast, json, math, subprocess, sys
 
 O = Path(__file__).resolve().parent
 
@@ -56,6 +56,15 @@ def export(freecad_python, thickness, clearance):
     subprocess.run([freecad_python, str(Path(__file__).resolve()), '--geometry',
                     '--thickness', str(thickness), '--slot-clearance', str(clearance)], check=True)
     data = json.loads((O / '.build/laser-contours.json').read_text())
+    # Check the motor interface from the generated contours, before writing DXF.
+    circles = [c for c in data['04_Socle_moteur'] if c['type'] == 'CIRCLE']
+    shaft = next(c for c in circles if abs(c['radius'] - 4.5) < 1e-8)
+    holes = [c for c in circles if abs(math.dist(c['center'], shaft['center']) - 9.5) < 1e-8]
+    assert len(holes) == 4 and all(abs(c['radius'] - 1.65) < 1e-8 for c in holes)
+    distances = sorted(math.dist(a['center'], b['center'])
+                       for i, a in enumerate(holes) for b in holes[i+1:])
+    assert all(abs(v - 19/math.sqrt(2)) < 1e-8 for v in distances[:4])
+    assert all(abs(v - 19) < 1e-8 for v in distances[4:])
     folder = O / 'laser'
     folder.mkdir(exist_ok=True)
 
@@ -96,6 +105,11 @@ def export(freecad_python, thickness, clearance):
     write(f'MDF{tag}_600x600.dxf', placements())
     write(f'Coupon_MDF{tag}.dxf', [('05_Coupon_ajustement', 42, 21),
                                  ('06_Temoin_ajustement', 111, 21)])
+    # Eight replacement plates on 300 x 150 mm, with at least 5 mm margins.
+    cx, cy = 2.563971143, -9.313539946
+    write(f'Socles_moteurs_MDF{tag}_D19_x8.dxf',
+          [('04_Socle_moteur', 35 + 75*i - cx, 36 + 75*j - cy)
+           for j in range(2) for i in range(4)])
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

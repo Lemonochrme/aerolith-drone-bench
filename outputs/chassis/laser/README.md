@@ -8,6 +8,12 @@ DXF R2010, unités mm, échelle 1:1. Un seul calque DECOUPE, sans texte, cadre n
 
 La planche contient les 18 pièces du cadre : 2 platines centrales, 4 bras courts, 4 bras longs et 8 socles moteurs. Espacement minimal entre pièces : 18 mm. Les essais sont dans le DXF séparé.
 
+## Socles de remplacement
+
+[8 socles corrigés, MDF 3 mm](Socles_moteurs_MDF3_D19_x8.dxf) | [Plan des socles et gabarit moteur à taille réelle](Plan_socles_MDF3_D19.pdf)
+
+Les huit pièces tiennent dans 300 × 150 mm. Seuls les quatre perçages moteur de chaque socle changent ; pourtour, mortaises et quatre fixations de fermeture sont identiques. Le cadre complet et le plan de contrôle intègrent aussi cette correction.
+
 ## Emboîtements
 
 - Épaisseur et profondeur des tenons : 3,00 mm.
@@ -18,7 +24,7 @@ La planche contient les 18 pièces du cadre : 2 platines centrales, 4 bras court
 
 Les entretoises restent de 20 mm au centre et 16 mm aux moteurs. Les empilages extérieurs passent respectivement à 26 et 22 mm. Les quatre vis de fermeture M3×30 par support et les vis M3×35 aux racines gardent une longueur suffisante. Utiliser des rondelles, sans écraser le MDF.
 
-Les axes moteurs, entraxes, profils pleins des bras, supports centrés et quatre fixations par support sont conservés. Le perçage moteur 19 × 19 M3 reste celui du modèle provisoire. Le vérifier sur les moteurs réels. Une vis moteur traverse désormais 1 mm de matière en moins : sa pénétration augmente de 1 mm à longueur identique.
+Les axes moteurs, entraxes, profils pleins des bras, supports centrés et quatre fixations par support sont conservés. Perçage GTSkytenRC 3115 corrigé : quatre trous Ø3,3, diagonales de 19 mm, côtés de 13,435 mm. Les centres sont à X/Y = ±6,717514 mm de l’axe moteur. Une vis moteur traverse désormais 1 mm de matière en moins : sa pénétration augmente de 1 mm à longueur identique.
 
 ## Essai avant la planche
 

@@ -40,7 +40,7 @@ Le format FC fourni est interprété comme un entraxe de fixation de 30,5 × 30,
 
 Les quatre ESC sont représentés par des cartes de 50 × 18 × 8, sur isolants de 2, maintenus par quatre colliers nylon 2,5 × 100. Six fenêtres de 8 × 4 permettent le passage des colliers ; la fenêtre centrale de chaque rangée est partagée. La batterie au-dessus du châssis occupe 148 × 44 × 52, sur un pad de 7, avec deux sangles de largeur 20. Ces dimensions sont provisoires ; aucune référence, tension ou capacité n'est imposée.
 
-Les quatre moteurs portent la référence demandée GTSkytenRC 3115 640KV. Leur modèle est simplifié : corps Ø38 × 33 et arbre M5. Aucun plan constructeur vérifié n'a été trouvé. Le perçage 19 × 19 M3, le dégagement central Ø9 et les dimensions extérieures doivent être mesurés sur les moteurs réels avant fabrication.
+Les quatre moteurs portent la référence demandée GTSkytenRC 3115 640KV. Leur modèle est simplifié : corps Ø38 × 33 et arbre M5. Aucun plan constructeur vérifié n'a été trouvé. Le perçage comporte quatre trous Ø3,3 : 19 mm entre trous opposés, 13,435 mm entre voisins, suivant les cotes fournies sur les moteurs réels. Les centres sont à X/Y = ±6,717514 mm de l’axe. Le dégagement central Ø9 et les dimensions extérieures restent indicatifs.
 
 Le pourtour des supports est centré sur l’axe moteur. Les mortaises restent décalées pour dégager le perçage moteur. Les hélices sont des tripales de diamètre 228,6 et de pas géométrique 127, avec deux sens de rotation de chaque. Leur profil est une représentation, pas une CAO constructeur.
 

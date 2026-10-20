@@ -47,7 +47,7 @@ with (O/'composants.csv').open('w',encoding='utf-8-sig',newline='') as f:
  ['ESC',4,'Electronique','50x18x8','Reference non choisie ; dimensions provisoires hors cables'],
  ['Collier ESC',4,'Nylon','2.5x100','Passages integres dans les platines'],
  ['Adhesif isolant ESC',4,'Isolant','50x18x2','Montage provisoire'],
- ['GTSkytenRC 3115 640KV',4,'Moteur','Enveloppe Ø38 / corps33 / arbre M5','Pas de plan fabricant disponible ; verifier le percage 19x19 et le passage central Ø9'],
+ ['GTSkytenRC 3115 640KV',4,'Moteur','Enveloppe Ø38 / corps33 / arbre M5','Percage utilisateur : diagonales19 / voisins13.435 / Ø3.3 ; enveloppe et passage central Ø9 indicatifs'],
  ['Helice tripale 9x5x3',4,'Helice','Ø228.6 / pas127','Deux de chaque sens ; forme simplifiee, pas une CAO constructeur'],
  ['Ecrou helice M5',4,'Metal','','Avec le moteur si fourni ; type et longueur utile a confirmer'],
  ['Rondelle helice M5',4,'Metal','','Selon fixation fournie avec le moteur'],
