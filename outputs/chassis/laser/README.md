@@ -1,6 +1,6 @@
 # Découpe MDF 3 mm
 
-[Cadre complet, planche 600 × 600](MDF3_600x600.dxf) | [Coupon et témoin](Coupon_MDF3.dxf)
+[Cadre complet, planche 600 × 600](MDF3_600x600.dxf) | [Coupon et témoin](Coupon_MDF3.dxf) | [Plan coté de contrôle, PDF A3](Plan_controle_MDF3.pdf)
 
 Ces fichiers remplacent la version MDF 4 mm. Ils sont destinés à une plaque de 3,00 mm nominal. Le projet FreeCAD carbone de 4 mm reste séparé.
 
