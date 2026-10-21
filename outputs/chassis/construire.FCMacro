@@ -95,6 +95,11 @@ def arm(long=False):
  shift=15 if long else 0;root=-67.5-shift;ends=[48.5+shift,68.5+shift];xmin=-80-shift;xmax=80+shift
  low=[(xmin,-10),(root-7,-10),(root-7,-10-T),(root+7,-10-T),(root+7,-10),(-48-shift,-10),(-43-shift,-13.5),(9+shift,-9),(18+shift,-8),(ends[0]-6,-8),(ends[0]-6,-8-T),(ends[0]+6,-8-T),(ends[0]+6,-8),(ends[1]-6,-8),(ends[1]-6,-8-T),(ends[1]+6,-8-T),(ends[1]+6,-8),(xmax,-8)]
  ps=low+[(x,-y) for x,y in reversed(low)]
+ # Four integral landing feet, one on each short arm; leave the upper edge intact.
+ if not long:
+  i=low.index((9,-9))
+  low=low[:i]+[(-31,-12.5),(-21,-17),(-10,-45),(10,-45),(15,-16),(18,-8)]+low[i+2:]
+  ps=low+ps[len(ps)//2:]
  # Blend the free span without cutting semicircular notches into its edges.
  # Cutter reliefs belong only to the functional tenon shoulders.
  radii=[];reliefs=[]
@@ -102,7 +107,8 @@ def arm(long=False):
   u=V(x,y)-V(*ps[i-1]);v=V(*ps[(i+1)%len(ps)])-V(x,y)
   concave=u.cross(v).z<-1e-7
   tenon=any(abs(x-c)<7.01 for c in [root]+ends)
-  radii.append((0 if tenon else 8.0) if concave else 1.0)
+  foot_corner=not long and y < -14 and -32 <= x <= 16
+  radii.append((0 if tenon else 8.0) if concave else (4.0 if foot_corner else 1.0))
   if concave and tenon:reliefs.append((x,y))
  f=Part.Face(rounded(ps,radii=radii))
  for x,y in ([] if LASER else reliefs):f=f.cut(Part.Face(circle(x,y,TOOL/2+.1)))
@@ -136,7 +142,7 @@ if LASER or abs(T-4.0)>1e-9:
  raise RuntimeError('Le projet complet est celui du carbone 4 mm. Utiliser exporter_laser.py pour le prototype MDF.')
 import Import
 (OUT/'dxf').mkdir(exist_ok=True);(OUT/'.build').mkdir(exist_ok=True)
-D=App.newDocument('Aerolith_Chassis_CNC_R9');D.Label='Aerolith / Châssis CNC R9 / carbone 4 mm / fraise 3 mm'
+D=App.newDocument('Aerolith_Chassis_CNC_R10');D.Label='Aerolith / Châssis CNC R10 / carbone 4 mm / fraise 3 mm'
 settings=D.addObject('Spreadsheet::Sheet','Parametres');settings.Label='00 / Références de fabrication ; reconstruction par macro'
 for c,val in {'A1':'PARAMÈTRE / référence','B1':'VALEUR','A2':'Épaisseur carbone (mm)','B2':str(T),'A3':'Fraise (mm)','B3':str(TOOL),'A4':'Jeu nominal rainure (mm)','B4':str(CLEAR),'A5':'Rainure (mm)','B5':str(T+CLEAR),'A6':'Entretoises centrales (mm)','B6':'20','A7':'Entretoises moteur (mm)','B7':'16','A10':'FC / entraxe suppose','B10':'30.5 x 30.5','A11':'ESC / enveloppe provisoire','B11':'50 x 18 x 8 mm','A12':'Batterie / enveloppe provisoire','B12':'148 x 44 x 52 mm','A13':'Moteurs','B13':'GTSkytenRC 3115 640KV / dimensions a confirmer','A14':'Helices','B14':'9x5x3 / diametre 228.6 / pas 127','A8':'Note','B8':'Modifier la macro et reconstruire pour changer les interfaces'}.items():settings.set(c,val)
 settings.setColumnWidth('A',320);settings.setColumnWidth('B',420);settings.setStyle('A1:B1','bold','add')
@@ -145,7 +151,7 @@ assembly=D.addObject('App::Part','Chassis');assembly.Label='02 / Châssis assemb
 masters={};links=[];shapes=[]
 qty={'01_Platine_centrale':2,'02_Bras_court':4,'03_Bras_long':4,'04_Socle_moteur':8,'05_Coupon_ajustement':1}
 colors={'01_Platine_centrale':(.13,.18,.23),'02_Bras_court':(.19,.25,.30),'03_Bras_long':(.19,.25,.30),'04_Socle_moteur':(.17,.22,.27),'05_Coupon_ajustement':(.3,.5,.65)}
-report={'version':'R9','epaisseur_mm':T,'fraise_mm':TOOL,'jeu_rainure_mm':CLEAR,'gcode_genere':False,'formes':{},'collisions_carbone_mm3':[]}
+report={'version':'R10','epaisseur_mm':T,'fraise_mm':TOOL,'jeu_rainure_mm':CLEAR,'gcode_genere':False,'formes':{},'collisions_carbone_mm3':[]}
 # Export analytic 2D contours as closed polylines with exact circular arc bulges.
 def contour_data(f):
  data=[]
@@ -311,6 +317,13 @@ for i,(n,s) in enumerate(shapes):
    vol=s.common(t).Volume
    if vol>.001:report['collisions_carbone_mm3'].append([n,m,round(vol,6)])
 assert not report['collisions_carbone_mm3'],report['collisions_carbone_mm3']
+feet=[s for n,s in shapes if n.startswith('Bras_Court_')]
+assert len(feet)==4 and all(abs(s.BoundBox.ZMin+55)<1e-6 for s in feet)
+others=[s for n,s in shapes if not n.startswith('Bras_Court_')]+[o.Shape for o in hardware+equipment]
+ground_clearance=min(s.BoundBox.ZMin for s in others)+55
+assert ground_clearance>20
+report['pieds']={'quantite':4,'plan_appui_z_mm':-55,'garde_sous_platine_basse_mm':35-T,
+                 'garde_sous_autres_pieces_mm':round(ground_clearance,3)}
 report['volume_carbone_chassis_mm3']=round(sum(forms[n].Area*T*q for n,q in qty.items() if 'Coupon' not in n),3)
 report['volume_origine_meme_epaisseur_mm3']=round(sum(d['aire_originale_mm2']*T*d['quantite'] for d in report['formes'].values() if d['aire_originale_mm2'] is not None),3)
 # Clearances apply to the modeled envelopes, not to unspecified real equipment.

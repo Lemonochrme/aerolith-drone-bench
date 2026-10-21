@@ -1,6 +1,6 @@
 # Châssis CNC
 
-Carbone de 4 mm. Fraise Ø3 mm. Révision R9. Dimensions en mm.
+Carbone de 4 mm. Fraise Ø3 mm. Révision R10. Dimensions en mm.
 
 [FreeCAD](chassis.FCStd) | [STEP](chassis.step) | [DXF](dxf/) | [Composants](composants.csv)
 
@@ -9,6 +9,8 @@ Carbone de 4 mm. Fraise Ø3 mm. Révision R9. Dimensions en mm.
 Le FreeCAD et le STEP ci-dessus restent le projet carbone 4 mm. Pour le MDF 3 mm, utiliser uniquement les DXF du dossier laser.
 
 ## Liaisons
+
+Quatre pieds sont intégrés au contour inférieur des bras courts, sans pièce ajoutée. Les bras longs restent identiques. Les appuis sont à 45 mm sous l’axe des bras, soit 31 mm sous la platine basse carbone de 4 mm. Les semelles ont environ 13,90 mm de contact rectiligne et des raccords extérieurs de rayon 4. La résistance aux chocs d’atterrissage n’est pas validée.
 
 Les bras sont pleins, sans trou d’allègement ni perçage transversal. Les encoches sur les transitions libres sont supprimées et remplacées par des raccords tangents de rayon 8. Les dégagements de fraise restent limités aux épaulements des tenons.
 
@@ -20,14 +22,14 @@ Les socles moteurs mesurent 56 × 61. Leur contour est symétrique et centré su
 
 Espacement intérieur des platines centrales : 20. Espacement intérieur des supports moteurs : 16. Entretoises et visserie détaillées dans le CSV. Les vis et écrous sont simplifiés dans la CAO ; les rondelles sont comptées dans le CSV.
 
-Les platines centrales mesurent 120 × 250, avec un contour arrondi et les seuls perçages de fixation utilisés. Les sangles de batterie, axes moteurs, entraxes et bras restent identiques à la révision R5.
+Les platines centrales mesurent 120 × 250, avec un contour arrondi et les seuls perçages de fixation utilisés. Les sangles de batterie, axes moteurs et entraxes restent identiques à la révision R5.
 
 ## Pièces carbone
 
 | Pièce | Quantité | Dimensions |
 |---|---:|---|
 | Platine centrale | 2 | 120 × 250 × 4 |
-| Bras court | 4 | 160 × 28 × 4 |
+| Bras court avec pied | 4 | 160 × 58,5 × 4 |
 | Bras long | 4 | 190 × 28 × 4 |
 | Socle moteur | 8 | 56 × 61 × 4 |
 | Coupon d'ajustement | 1 | 84 × 32 × 4 |

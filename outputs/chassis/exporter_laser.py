@@ -6,7 +6,7 @@ O = Path(__file__).resolve().parent
 
 def placements():
     result = [('01_Platine_centrale', x, 160) for x in (85, 235)]
-    for y in (360, 405, 450, 495):
+    for y in (360, 430, 500, 570):
         result += [('02_Bras_court', 100, y), ('03_Bras_long', 315, y)]
     result += [('04_Socle_moteur', x, y) for x in (370, 460) for y in (65, 145, 225, 305)]
     return result
@@ -110,6 +110,8 @@ def export(freecad_python, thickness, clearance):
     write(f'Socles_moteurs_MDF{tag}_D19_x8.dxf',
           [('04_Socle_moteur', 35 + 75*i - cx, 36 + 75*j - cy)
            for j in range(2) for i in range(4)])
+    write(f'Bras_courts_avec_pieds_MDF{tag}_x4.dxf',
+          [('02_Bras_court', x, y) for y in (55, 125) for x in (90, 270)])
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

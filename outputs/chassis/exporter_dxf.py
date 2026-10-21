@@ -16,7 +16,7 @@ for key in data:
  ms=d2.modelspace();assert all(e.dxftype()=='CIRCLE' or e.closed for e in ms)
 placements=[]
 for x in [85,235]:placements.append(['01_Platine_centrale',x,160])
-for y in [360,405,450,495]:placements.extend([['02_Bras_court',100,y],['03_Bras_long',315,y]])
+for y in [360,430,500,570]:placements.extend([['02_Bras_court',100,y],['03_Bras_long',315,y]])
 for x in [370,460]:
  for y in [65,145,225,305]:placements.append(['04_Socle_moteur',x,y])
 placements.append(['05_Coupon_ajustement',458,455])

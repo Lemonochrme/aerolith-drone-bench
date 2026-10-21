@@ -6,7 +6,13 @@ Ces fichiers remplacent la version MDF 4 mm. Ils sont destinés à une plaque de
 
 DXF R2010, unités mm, échelle 1:1. Un seul calque DECOUPE, sans texte, cadre ni gravure. Contours intérieurs écrits avant le pourtour de chaque pièce ; conserver cette priorité dans le logiciel laser. Ne pas redimensionner à l'importation.
 
-La planche contient les 18 pièces du cadre : 2 platines centrales, 4 bras courts, 4 bras longs et 8 socles moteurs. Espacement minimal entre pièces : 18 mm. Les essais sont dans le DXF séparé.
+La planche contient les 18 pièces du cadre : 2 platines centrales, 4 bras courts, 4 bras longs et 8 socles moteurs. Espacement minimal entre pièces : 14,52 mm. Les essais sont dans le DXF séparé.
+
+## Pieds intégrés R10
+
+[4 bras courts avec pieds, MDF 3 mm](Bras_courts_avec_pieds_MDF3_x4.dxf)
+
+Un pied par bras court, découpé dans la même pièce. Les quatre bras longs et tous les emboîtements sont conservés. Les quatre bras de remplacement tiennent dans 360 × 150 mm. Appuis à 45 mm sous l’axe des bras, soit 32 mm sous la platine basse, hors visserie. Les raccords extérieurs des pieds ont un rayon de 4 mm ; la semelle rectiligne mesure environ 13,90 mm. Le MDF et ses pieds ne sont pas validés pour les chocs d’atterrissage.
 
 ## Socles de remplacement
 
@@ -24,7 +30,7 @@ Les huit pièces tiennent dans 300 × 150 mm. Socles R9 de 56 × 61 mm, contre 5
 
 Les entretoises restent de 20 mm au centre et 16 mm aux moteurs. Les empilages extérieurs passent respectivement à 26 et 22 mm. Les quatre vis de fermeture M3×30 par support et les vis M3×35 aux racines gardent une longueur suffisante. Utiliser des rondelles, sans écraser le MDF.
 
-Les axes moteurs, entraxes, profils pleins des bras, supports centrés et quatre fixations par support sont conservés. Perçage GTSkytenRC 3115 corrigé : quatre trous Ø3,3, diagonales de 19 mm, côtés de 13,435 mm. Les centres sont à X/Y = ±6,717514 mm de l’axe moteur. Une vis moteur traverse désormais 1 mm de matière en moins : sa pénétration augmente de 1 mm à longueur identique.
+Les axes moteurs, entraxes, profils pleins des bras longs, supports centrés et quatre fixations par support sont conservés. Perçage GTSkytenRC 3115 corrigé : quatre trous Ø3,3, diagonales de 19 mm, côtés de 13,435 mm. Les centres sont à X/Y = ±6,717514 mm de l’axe moteur. Une vis moteur traverse désormais 1 mm de matière en moins : sa pénétration augmente de 1 mm à longueur identique.
 
 ## Essai avant la planche
 
