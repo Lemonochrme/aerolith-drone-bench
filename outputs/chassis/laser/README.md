@@ -12,7 +12,7 @@ La planche contient les 18 pièces du cadre : 2 platines centrales, 4 bras court
 
 [8 socles corrigés, MDF 3 mm](Socles_moteurs_MDF3_D19_x8.dxf) | [Plan des socles et gabarit moteur à taille réelle](Plan_socles_MDF3_D19.pdf)
 
-Les huit pièces tiennent dans 300 × 150 mm. Seuls les quatre perçages moteur de chaque socle changent ; pourtour, mortaises et quatre fixations de fermeture sont identiques. Le cadre complet et le plan de contrôle intègrent aussi cette correction.
+Les huit pièces tiennent dans 300 × 150 mm. Socles R9 de 56 × 61 mm, contre 58 × 62 mm en R8. Le contour est réduit ; les mortaises, perçages moteur et quatre fixations de fermeture sont conservés. Distance minimale des découpes intérieures au bord : 3,51 mm. Le cadre complet et le plan de contrôle intègrent aussi cette correction.
 
 ## Emboîtements
 

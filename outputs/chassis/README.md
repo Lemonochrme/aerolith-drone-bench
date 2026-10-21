@@ -1,6 +1,6 @@
 # Châssis CNC
 
-Carbone de 4 mm. Fraise Ø3 mm. Révision R8. Dimensions en mm.
+Carbone de 4 mm. Fraise Ø3 mm. Révision R9. Dimensions en mm.
 
 [FreeCAD](chassis.FCStd) | [STEP](chassis.step) | [DXF](dxf/) | [Composants](composants.csv)
 
@@ -16,7 +16,7 @@ Les tenons mesurent 14 de long aux racines et 12 côté moteur. Les mortaises fo
 
 Les équerres et leurs vis transversales sont supprimées. Les tenons positionnent les bras entre les platines. Deux entretoises métalliques de 20 et deux vis M3 par racine ferment les platines centrales. Quatre entretoises de 16 et quatre vis M3 ferment chaque paire de socles moteurs, avec deux fixations de chaque côté du moteur.
 
-Les socles moteurs mesurent 58 × 62. Leur contour est symétrique et centré sur l’axe moteur, avec des raccords de rayon 8. Les axes moteurs et les mortaises sont conservés. La distance minimale entre un perçage ou une mortaise et le bord est de 3,89.
+Les socles moteurs mesurent 56 × 61. Leur contour est symétrique et centré sur l’axe moteur, avec des raccords de rayon 8. Les axes moteurs et les mortaises sont conservés. La distance minimale entre un perçage ou une mortaise et le bord est de 3,43.
 
 Espacement intérieur des platines centrales : 20. Espacement intérieur des supports moteurs : 16. Entretoises et visserie détaillées dans le CSV. Les vis et écrous sont simplifiés dans la CAO ; les rondelles sont comptées dans le CSV.
 
@@ -29,7 +29,7 @@ Les platines centrales mesurent 120 × 250, avec un contour arrondi et les seuls
 | Platine centrale | 2 | 120 × 250 × 4 |
 | Bras court | 4 | 160 × 28 × 4 |
 | Bras long | 4 | 190 × 28 × 4 |
-| Socle moteur | 8 | 58 × 62 × 4 |
+| Socle moteur | 8 | 56 × 61 × 4 |
 | Coupon d'ajustement | 1 | 84 × 32 × 4 |
 
 ## Équipements
