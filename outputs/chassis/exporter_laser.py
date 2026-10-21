@@ -1,4 +1,4 @@
-"""Export du prototype MDF, épaisseur nominale 3 mm, sans dégagements de fraise."""
+"""Export du prototype MDF 3 mm : laser, ou CNC fraise Ø3 avec --cnc."""
 from pathlib import Path
 import argparse, ast, json, math, subprocess, sys
 
@@ -11,11 +11,11 @@ def placements():
     result += [('04_Socle_moteur', x, y) for x in (370, 460) for y in (65, 145, 225, 305)]
     return result
 
-def geometry(thickness, clearance):
+def geometry(thickness, clearance, cnc=False):
     import FreeCAD as App
     import Part
     source = (O / 'construire.FCMacro').read_text(encoding='utf-8')
-    ns = {'__file__': str(O / 'construire.FCMacro'), 'LASER': True,
+    ns = {'__file__': str(O / 'construire.FCMacro'), 'LASER': not cnc,
           'THICKNESS': thickness, 'SLOT_CLEARANCE': clearance}
     exec(source.split('# Native FreeCAD project')[0], ns)
     node = next(n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef) and n.name == 'contour_data')
@@ -26,6 +26,13 @@ def geometry(thickness, clearance):
               (-7,10+thickness),(-7,10),(-15,10)]
     forms['06_Temoin_ajustement'] = Part.Face(Part.makePolygon(
         [App.Vector(x,y,0) for x,y in points + [points[0]]]))
+    if cnc:
+        r = ns['TOOL']/2 + .1
+        for side in (-1, 1):
+            forms['06_Temoin_ajustement'] = forms['06_Temoin_ajustement'].cut(
+                Part.Face(ns['capsule'](side*(7+r), 10+r/2, 3*r, 2*r, 90)))
+        forms['06_Temoin_ajustement'] = Part.Face(
+            forms['06_Temoin_ajustement'].removeSplitter().Faces[0].OuterWire)
     assert all(f.isValid() and len(f.Faces) == 1 and all(w.isClosed() for w in f.Wires) for f in forms.values())
     assert all(len(forms[n].Wires) == 1 for n in ('02_Bras_court', '03_Bras_long'))
     sheet = []
@@ -41,21 +48,25 @@ def geometry(thickness, clearance):
         for contour, wire in zip(data[n], f.Wires):
             contour['outer'] = wire.isSame(f.OuterWire)
     (O / '.build').mkdir(exist_ok=True)
-    (O / '.build/laser-contours.json').write_text(json.dumps(data), encoding='utf-8')
+    prefix = 'cnc-mdf' if cnc else 'laser'
+    (O / f'.build/{prefix}-contours.json').write_text(json.dumps(data), encoding='utf-8')
     report = {'epaisseur_mm': thickness, 'jeu_total_mm': clearance,
               'rainure_mm': thickness + clearance,
               'profondeur_tenons_mm': thickness,
               'pieces_chassis': len(sheet), 'espacement_min_mm': gap,
               'formes': {n: {'aire_mm2': f.Area, 'contours': len(f.Wires)}
                          for n, f in forms.items()}}
-    (O / '.build/laser-parametres.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
+    report['procede'] = 'CNC fraise 3 mm / T-bone' if cnc else 'laser'
+    (O / f'.build/{prefix}-parametres.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
     print(f'{len(sheet)} pieces / epaisseur {thickness:g} / rainures {thickness+clearance:g} / espacement {gap:.3f} mm')
 
-def export(freecad_python, thickness, clearance):
+def export(freecad_python, thickness, clearance, cnc=False):
     import ezdxf
     subprocess.run([freecad_python, str(Path(__file__).resolve()), '--geometry',
-                    '--thickness', str(thickness), '--slot-clearance', str(clearance)], check=True)
-    data = json.loads((O / '.build/laser-contours.json').read_text())
+                    '--thickness', str(thickness), '--slot-clearance', str(clearance)]
+                   + (['--cnc'] if cnc else []), check=True)
+    prefix = 'cnc-mdf' if cnc else 'laser'
+    data = json.loads((O / f'.build/{prefix}-contours.json').read_text())
     # Check the motor interface from the generated contours, before writing DXF.
     circles = [c for c in data['04_Socle_moteur'] if c['type'] == 'CIRCLE']
     shaft = next(c for c in circles if abs(c['radius'] - 4.5) < 1e-8)
@@ -65,7 +76,7 @@ def export(freecad_python, thickness, clearance):
                        for i, a in enumerate(holes) for b in holes[i+1:])
     assert all(abs(v - 19/math.sqrt(2)) < 1e-8 for v in distances[:4])
     assert all(abs(v - 19) < 1e-8 for v in distances[4:])
-    folder = O / 'laser'
+    folder = O / (f'cnc_mdf{thickness:g}' if cnc else 'laser')
     folder.mkdir(exist_ok=True)
 
     def write(name, items):
@@ -102,6 +113,11 @@ def export(freecad_python, thickness, clearance):
         print(f'{name} : {expected} contours fermes, sans texte ni cadre')
 
     tag = f'{thickness:g}'.replace('.', 'p')
+    if cnc:
+        write(f'MDF{tag}_CNC_fraise3_600x600.dxf', placements())
+        write(f'Coupon_MDF{tag}_CNC_fraise3.dxf', [('05_Coupon_ajustement', 42, 21),
+                                               ('06_Temoin_ajustement', 111, 21)])
+        return
     write(f'MDF{tag}_600x600.dxf', placements())
     write(f'Coupon_MDF{tag}.dxf', [('05_Coupon_ajustement', 42, 21),
                                  ('06_Temoin_ajustement', 111, 21)])
@@ -116,6 +132,7 @@ def export(freecad_python, thickness, clearance):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--geometry', action='store_true', help=argparse.SUPPRESS)
+    parser.add_argument('--cnc', action='store_true', help='Export MDF avec T-bones pour fraise 3 mm')
     parser.add_argument('--freecad-python', default=r'C:\Program Files\FreeCAD 1.1\bin\python.exe')
     parser.add_argument('--thickness', type=float, default=3.0, help='Epaisseur mesuree du MDF, en mm')
     parser.add_argument('--slot-clearance', type=float, default=.05, help='Jeu total des mortaises, en mm')
@@ -123,6 +140,6 @@ if __name__ == '__main__':
     if not (1 <= args.thickness <= 6 and 0 <= args.slot_clearance <= .3):
         parser.error('Epaisseur attendue entre 1 et 6 mm et jeu entre 0 et 0.3 mm')
     if args.geometry:
-        geometry(args.thickness, args.slot_clearance)
+        geometry(args.thickness, args.slot_clearance, args.cnc)
     else:
-        export(args.freecad_python, args.thickness, args.slot_clearance)
+        export(args.freecad_python, args.thickness, args.slot_clearance, args.cnc)

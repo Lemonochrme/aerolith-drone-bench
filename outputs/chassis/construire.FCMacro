@@ -8,7 +8,7 @@ OUT=Path(__file__).resolve().parent
 src=json.loads((OUT/'sources/contours.json').read_text(encoding='utf-8'))
 def rot(p,a):
  a=math.radians(a);return V(p.x*math.cos(a)-p.y*math.sin(a),p.x*math.sin(a)+p.y*math.cos(a),p.z)
-def rounded(points,r=4,variable=False,radii=None):
+def rounded(points,r=4,variable=False,radii=None,cap_ratio=.45):
  ps=[V(x,y,0) for x,y in points];corners=[]
  # Counterclockwise winding is not necessary: signed turn defines arc normal.
  for i,p in enumerate(ps):
@@ -18,7 +18,7 @@ def rounded(points,r=4,variable=False,radii=None):
   radius=radii[i] if radii is not None else (1.6 if angle<0 else 1.0) if variable else r
   if radius<1e-8:corners.append((p,p,None));continue
   trim=radius*math.tan(abs(angle)/2)
-  cap=min((p-prev).Length,(nxt-p).Length)*.45
+  cap=min((p-prev).Length,(nxt-p).Length)*cap_ratio
   if trim>cap:
    radius=cap/math.tan(abs(angle)/2);trim=cap
   a=p-u*trim;b=p+v*trim;sgn=1 if angle>0 else -1
@@ -43,17 +43,21 @@ def mortise(cx,cy,length,width,angle=0):
   w.rotate(V(),V(0,0,1),angle);w.translate(V(cx,cy));return Part.Wire(w.Edges)
  key=(length,width)
  if key not in MORTISES:
-  r=TOOL/2+.1
-  f=Part.Face(rounded([(-length/2,-width/2),(length/2,-width/2),(length/2,width/2),(-length/2,width/2)],r)).extrude(V(0,0,1))
+  r=min(TOOL/2+.1,width/2)
+  assert r>=TOOL/2-1e-9, 'Mortaise plus etroite que la fraise'
+  f=Part.Face(rounded([(-length/2,-width/2),(length/2,-width/2),(length/2,width/2),(-length/2,width/2)],r,cap_ratio=.5)).extrude(V(0,0,1))
   for sx in [-1,1]:
    for sy in [-1,1]:
-    a=V(sx*(length/2-r),sy*(width/2-r));b=V(sx*(length/2-r/math.sqrt(2)),sy*(width/2-r/math.sqrt(2)))
+    # T-bone: move the cutter perpendicular to the long edge, not diagonally.
+    a=V(sx*(length/2-r),sy*(width/2-r));b=V(sx*(length/2-r),sy*width/2)
     delta=b-a;mid=(a+b)*.5
     sweep=Part.Face(capsule(mid.x,mid.y,delta.Length+2*r,2*r,math.degrees(math.atan2(delta.y,delta.x)))).extrude(V(0,0,1))
     f=f.fuse(sweep).removeSplitter()
   bottom=[q for q in f.Faces if q.BoundBox.ZLength<1e-6 and abs(q.CenterOfMass.z)<1e-6]
   assert len(bottom)==1
   MORTISES[key]=bottom[0].OuterWire
+  box=MORTISES[key].BoundBox
+  assert abs(box.XLength-length)<1e-7 and abs(box.YLength-width-2*r)<1e-7
  w=MORTISES[key].copy();w.rotate(V(),V(0,0,1),angle);w.translate(V(cx,cy));return w
 
 def circle(x,y,r):return Part.Wire([Part.makeCircle(r,V(x,y))])
@@ -84,8 +88,6 @@ for x,y,a in roots:
   for sy in [-1,1]:baseholes.append(mortise(sx*x,sy*y,14.08,T+CLEAR,math.degrees(math.atan2(sy*math.sin(math.radians(a)),sx*math.cos(math.radians(a))))))
 for x in [-25,25]:
  for y in [-45,45]:baseholes.append(capsule(x,y,27,5,90))
-for x in [-10,10]:
- for y in [-79,79]:baseholes.append(capsule(x,y,22,7,90))
 # Shared central windows and outer windows accept two ESC straps per row.
 for y in [-70,70]:
  for x in [-29,0,29]:baseholes.append(capsule(x,y,8,4,90))
@@ -111,7 +113,11 @@ def arm(long=False):
   radii.append((0 if tenon else 8.0) if concave else (4.0 if foot_corner else 1.0))
   if concave and tenon:reliefs.append((x,y))
  f=Part.Face(rounded(ps,radii=radii))
- for x,y in ([] if LASER else reliefs):f=f.cut(Part.Face(circle(x,y,TOOL/2+.1)))
+ for x,y in ([] if LASER else reliefs):
+  # T-bone at the shoulder, offset away from the tenon to preserve its width.
+  c=min([root]+ends,key=lambda c:abs(x-c));side=1 if x>c else -1
+  r=TOOL/2+.1;cy=y+(r/2 if y>0 else -r/2)
+  f=f.cut(Part.Face(capsule(x+side*r,cy,3*r,2*r,90)))
  return Part.Face(f.removeSplitter().Faces[0].OuterWire)
 short=arm();long=arm(True)
 # Motor support: smooth outline, retain mounting centers and shaft clearance.
@@ -142,7 +148,7 @@ if LASER or abs(T-4.0)>1e-9:
  raise RuntimeError('Le projet complet est celui du carbone 4 mm. Utiliser exporter_laser.py pour le prototype MDF.')
 import Import
 (OUT/'dxf').mkdir(exist_ok=True);(OUT/'.build').mkdir(exist_ok=True)
-D=App.newDocument('Aerolith_Chassis_CNC_R10');D.Label='Aerolith / Châssis CNC R10 / carbone 4 mm / fraise 3 mm'
+D=App.newDocument('Aerolith_Chassis_CNC_R11');D.Label='Aerolith / Châssis CNC R11 / carbone 4 mm / fraise 3 mm'
 settings=D.addObject('Spreadsheet::Sheet','Parametres');settings.Label='00 / Références de fabrication ; reconstruction par macro'
 for c,val in {'A1':'PARAMÈTRE / référence','B1':'VALEUR','A2':'Épaisseur carbone (mm)','B2':str(T),'A3':'Fraise (mm)','B3':str(TOOL),'A4':'Jeu nominal rainure (mm)','B4':str(CLEAR),'A5':'Rainure (mm)','B5':str(T+CLEAR),'A6':'Entretoises centrales (mm)','B6':'20','A7':'Entretoises moteur (mm)','B7':'16','A10':'FC / entraxe suppose','B10':'30.5 x 30.5','A11':'ESC / enveloppe provisoire','B11':'50 x 18 x 8 mm','A12':'Batterie / enveloppe provisoire','B12':'148 x 44 x 52 mm','A13':'Moteurs','B13':'GTSkytenRC 3115 640KV / dimensions a confirmer','A14':'Helices','B14':'9x5x3 / diametre 228.6 / pas 127','A8':'Note','B8':'Modifier la macro et reconstruire pour changer les interfaces'}.items():settings.set(c,val)
 settings.setColumnWidth('A',320);settings.setColumnWidth('B',420);settings.setStyle('A1:B1','bold','add')
@@ -151,7 +157,7 @@ assembly=D.addObject('App::Part','Chassis');assembly.Label='02 / Châssis assemb
 masters={};links=[];shapes=[]
 qty={'01_Platine_centrale':2,'02_Bras_court':4,'03_Bras_long':4,'04_Socle_moteur':8,'05_Coupon_ajustement':1}
 colors={'01_Platine_centrale':(.13,.18,.23),'02_Bras_court':(.19,.25,.30),'03_Bras_long':(.19,.25,.30),'04_Socle_moteur':(.17,.22,.27),'05_Coupon_ajustement':(.3,.5,.65)}
-report={'version':'R10','epaisseur_mm':T,'fraise_mm':TOOL,'jeu_rainure_mm':CLEAR,'gcode_genere':False,'formes':{},'collisions_carbone_mm3':[]}
+report={'version':'R11','epaisseur_mm':T,'fraise_mm':TOOL,'jeu_rainure_mm':CLEAR,'gcode_genere':False,'formes':{},'collisions_carbone_mm3':[]}
 # Export analytic 2D contours as closed polylines with exact circular arc bulges.
 def contour_data(f):
  data=[]

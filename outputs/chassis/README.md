@@ -1,12 +1,12 @@
 # Châssis CNC
 
-Carbone de 4 mm. Fraise Ø3 mm. Révision R10. Dimensions en mm.
+Carbone de 4 mm. Fraise Ø3 mm. Révision R11. Dimensions en mm.
 
 [FreeCAD](chassis.FCStd) | [STEP](chassis.step) | [DXF](dxf/) | [Composants](composants.csv)
 
-[Prototype MDF 3 mm : fichiers pour découpe laser](laser/README.md)
+[MDF 3 mm, laser](laser/README.md) | [MDF 3 mm, CNC fraise Ø3](cnc_mdf3/README.md)
 
-Le FreeCAD et le STEP ci-dessus restent le projet carbone 4 mm. Pour le MDF 3 mm, utiliser uniquement les DXF du dossier laser.
+Le FreeCAD et le STEP ci-dessus restent le projet carbone 4 mm. Pour le MDF 3 mm, choisir le dossier laser ou cnc_mdf3 selon le procédé.
 
 ## Liaisons
 
@@ -14,13 +14,15 @@ Quatre pieds sont intégrés au contour inférieur des bras courts, sans pièce 
 
 Les bras sont pleins, sans trou d’allègement ni perçage transversal. Les encoches sur les transitions libres sont supprimées et remplacées par des raccords tangents de rayon 8. Les dégagements de fraise restent limités aux épaulements des tenons.
 
-Les tenons mesurent 14 de long aux racines et 12 côté moteur. Les mortaises font respectivement 14,08 × 4,05 et 12,08 × 4,05, avec des dégagements de fraise localisés aux coins. Le jeu nominal total en épaisseur est de 0,05.
+Les tenons mesurent 14 de long aux racines et 12 côté moteur. Les mortaises font respectivement 14,08 × 4,05 et 12,08 × 4,05, avec quatre dégagements T-bone perpendiculaires aux grands côtés. Rayon des dégagements : 1,6 ; largeur hors dégagements : 4,05 ; largeur totale avec dégagements : 7,25. Les épaulements des tenons ont aussi des T-bones décalés vers l’extérieur du tenon. Le jeu nominal total en épaisseur est de 0,05.
 
 Les équerres et leurs vis transversales sont supprimées. Les tenons positionnent les bras entre les platines. Deux entretoises métalliques de 20 et deux vis M3 par racine ferment les platines centrales. Quatre entretoises de 16 et quatre vis M3 ferment chaque paire de socles moteurs, avec deux fixations de chaque côté du moteur.
 
-Les socles moteurs mesurent 56 × 61. Leur contour est symétrique et centré sur l’axe moteur, avec des raccords de rayon 8. Les axes moteurs et les mortaises sont conservés. La distance minimale entre un perçage ou une mortaise et le bord est de 3,43.
+Les socles moteurs mesurent 56 × 61. Leur contour est symétrique et centré sur l’axe moteur, avec des raccords de rayon 8. Les axes moteurs et les mortaises sont conservés. La distance minimale entre un perçage ou une mortaise et le bord est de 3,51.
 
 Espacement intérieur des platines centrales : 20. Espacement intérieur des supports moteurs : 16. Entretoises et visserie détaillées dans le CSV. Les vis et écrous sont simplifiés dans la CAO ; les rondelles sont comptées dans le CSV.
+
+Les quatre lumières inutilisées de 22 × 7, centrées à X = ±10 et Y = ±79, sont supprimées des deux platines. Les passages de sangles batterie et de colliers ESC sont conservés.
 
 Les platines centrales mesurent 120 × 250, avec un contour arrondi et les seuls perçages de fixation utilisés. Les sangles de batterie, axes moteurs et entraxes restent identiques à la révision R5.
 

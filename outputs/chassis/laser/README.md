@@ -8,7 +8,7 @@ DXF R2010, unités mm, échelle 1:1. Un seul calque DECOUPE, sans texte, cadre n
 
 La planche contient les 18 pièces du cadre : 2 platines centrales, 4 bras courts, 4 bras longs et 8 socles moteurs. Espacement minimal entre pièces : 14,52 mm. Les essais sont dans le DXF séparé.
 
-## Pieds intégrés R10
+## Pieds intégrés
 
 [4 bras courts avec pieds, MDF 3 mm](Bras_courts_avec_pieds_MDF3_x4.dxf)
 
@@ -19,6 +19,8 @@ Un pied par bras court, découpé dans la même pièce. Les quatre bras longs et
 [8 socles corrigés, MDF 3 mm](Socles_moteurs_MDF3_D19_x8.dxf) | [Plan des socles et gabarit moteur à taille réelle](Plan_socles_MDF3_D19.pdf)
 
 Les huit pièces tiennent dans 300 × 150 mm. Socles R9 de 56 × 61 mm, contre 58 × 62 mm en R8. Le contour est réduit ; les mortaises, perçages moteur et quatre fixations de fermeture sont conservés. Distance minimale des découpes intérieures au bord : 3,51 mm. Le cadre complet et le plan de contrôle intègrent aussi cette correction.
+
+Les quatre lumières inutilisées de 22 × 7 à X = ±10, Y = ±79 sont supprimées des deux platines en R11. Les passages utilisés par les sangles et colliers sont conservés. Les T-bones concernent les [exports CNC](../cnc_mdf3/README.md).
 
 ## Emboîtements
 
